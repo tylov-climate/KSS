@@ -63,11 +63,17 @@ def sample_test():
     q = proj.convert_to_rotpole(nor_lonlat[1])
     print('lon',(p[0],q[0]), 'lat',(p[1],q[1]))
     base = '_EUR-11_ICHEC-EC-EARTH_rcp85_r12i1p1_SMHI-RCA4_v1_day_20060101-20101231.nc'
-    os.system('ncks -d rlon,%f,%f -d rlat,%f,%f %s -O %s' % (p[0],q[0], p[1],q[1], 'sample_eur/tas' + base, 'sample_nor/tas' + base))
-    os.system('ncks -d rlon,%f,%f -d rlat,%f,%f %s -O %s' % (p[0],q[0], p[1],q[1], 'sample_eur/pr' + base, 'sample_nor/pr' + base))
+    samples = os.path.join('..', 'sample_data')
+    os.system('ncks -d rlon,%f,%f -d rlat,%f,%f %s -O %s' % (p[0],q[0], p[1],q[1],
+        os.path.join(samples, 'eur11', 'tas' + base),
+        os.path.join(samples, 'nor11', 'tas' + base)))
+    os.system('ncks -d rlon,%f,%f -d rlat,%f,%f %s -O %s' % (p[0],q[0], p[1],q[1], 
+        os.path.join(samples, 'eur11', 'pr' + base),
+        os.path.join(samples, 'nor11', 'pr' + base)))
 
 # MAIN
 
 if __name__ == '__main__':
+    #sample_test()
     crop_cordex_eur11_to_norway(inroot='/tos-project4/NS9076K/data/cordex/output/EUR-11',
                                 outroot='/tos-project4/NS9076K/data/cordex-norway/EUR-11')
