@@ -46,8 +46,6 @@ MPI-CSC/MPI-M-MPI-ESM-LR/rcp26/r1i1p1/REMO2009/v1/day/pr/v20160525
 
 '''
 
-n = 0
-
 def create_avg(inroot, outroot, infiles, outfile):
     infiles.sort()
     infiles_full = os.path.join(inroot, infiles[0])
@@ -61,26 +59,22 @@ def create_avg(inroot, outroot, infiles, outfile):
             print('Exists')
             return
  
-    global n
-    n += 1
-    #if n > 10: exit()
-    
     tmp = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
-    cmd = "cdo timavg -cat '%s' %s" % (infiles_full, tmp)
+
+    # timmean uses only non-missing values, while timavg uses all.
+    # https://code.mpimet.mpg.de/projects/cdo/embedded/index.html#x1-3490002.8
+    cmd = "cdo timmean -cat '%s' %s" % (infiles_full, tmp)
     for f in infiles:
         print('   ', f)
  
     ret = os.system(cmd)
-    odir = os.path.dirname(outfile_full)
-    if not os.path.isdir(odir):
-        os.makedirs(odir)
-        print('Created dir:', odir)
     
     print('Result:', ret)    
     if ret == 0:
-        odir = os.path.basename(outfile_full)
+        odir = os.path.dirname(outfile_full)
         if not os.path.isdir(odir):
             os.makedirs(odir)
+            print('Created dir:', odir)
         os.rename(tmp, outfile_full)
 
 
@@ -101,8 +95,6 @@ def create_file_groups(inroot, outroot, institute = None, periods=((1951, 2000),
             if f.endswith('.nc'):
                 infile = os.path.join(root, f)
                 subpath = root.replace(inroot, '')
-                #outdir = os.path.join(outroot, subpath)
-                #outfile = os.path.join(outdir, f)
                 institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id = subpath.split('/')
                 d1 = dt.datetime.strptime(f[-20:-12], '%Y%m%d')
                 d2 = dt.datetime.strptime(f[-11:-3], '%Y%m%d')
@@ -115,15 +107,12 @@ def create_file_groups(inroot, outroot, institute = None, periods=((1951, 2000),
                 pavg = 'a%d-%d' % (periods[p][0], periods[p][1])
                 #experiment_name = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, pavg)
                 experiment_name = '%s_%s' % (f[:-21], pavg)
-                output_name = '%s_%s/%s' % (pavg, var_id, experiment_name)
+                output_name = '%s_%s/%s' % (var_id, pavg, experiment_name)
                 try:
                     m[output_name].append(os.path.join(subpath, f))
                 except:
                     m[output_name] = [os.path.join(subpath, f)]
     return m
-
-#    for inst_path in glob.glob(os.path.join(inroot, '*')):
-#        institute = os.path.basename(inst_path)
 
 
 def create_avg_all(inroot, outroot):
@@ -136,9 +125,8 @@ def create_avg_all(inroot, outroot):
     return m
 
 
+
 # MAIN
-
-
 
 if __name__ == '__main__':
     #if len(sys.argv) == 1:
