@@ -46,7 +46,7 @@ MPI-CSC/MPI-M-MPI-ESM-LR/rcp26/r1i1p1/REMO2009/v1/day/pr/v20160525
 
 '''
 
-def create_mean(inroot, outroot, infiles, outfile):
+def create_group_stat(inroot, outroot, operator, infiles, outfile):
     infiles.sort()
     infiles_full = os.path.join(inroot, infiles[0])
     
@@ -63,7 +63,7 @@ def create_mean(inroot, outroot, infiles, outfile):
 
     # timmean uses only non-missing values, while timavg uses all.
     # https://code.mpimet.mpg.de/projects/cdo/embedded/index.html#x1-3490002.8
-    cmd = "cdo timmean -cat '%s' %s" % (infiles_full, tmp)
+    cmd = "cdo tim%s -cat '%s' %s" % (operator, infiles_full, tmp)
     for f in infiles:
         print('   ', f)
  
@@ -87,7 +87,7 @@ def find_period(d1, d2, periods):
     return -1
 
 
-def group_experiment_files(inroot, outroot, institute=None, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
+def map_group_files(inroot, outroot, operator, institute=None, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
     path_map = {}
     if inroot[-1] != '/':
         inroot += '/'
@@ -107,10 +107,10 @@ def group_experiment_files(inroot, outroot, institute=None, periods=((1951, 2000
                 if p == -1:
                     continue
                 inpath = os.path.join(subpath, f)
-                period_id = 'mean%d-%d' % (periods[p][0], periods[p][1])
+                period_id = '%s%d-%d' % (operator, periods[p][0], periods[p][1])
                 experiment_name = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % ('EUR-11', institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id, period_id)
                 #experiment_name = '%s_%s' % (f[:-21], period_id)
-                outpath = '%s_%s/%s' % (var_id, period_id, experiment_name)
+                outpath = '%s_%s_%s/%s' % (var_id, experiment_id, period_id, experiment_name)
                 try:
                     path_map[outpath].append(inpath)
                 except:
@@ -118,23 +118,31 @@ def group_experiment_files(inroot, outroot, institute=None, periods=((1951, 2000
     return path_map
 
 
-def create_mean_all(inroot, outroot, institute=None, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
-    path_map = group_experiment_files(inroot, outroot, institute, periods) 
-    
+def create_stat(inroot, outroot, operator, institute=None, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
+    outroot += '/tim' + operator
+    path_map = map_group_files(inroot, outroot, operator, institute, periods)
+
     if not os.path.isdir(outroot):
         os.makedirs(outroot)    
     for outfile, infiles in path_map.items():
-        create_mean(inroot, outroot, infiles, outfile)
+        create_group_stat(inroot, outroot, operator, infiles, outfile)
 
 
 # MAIN
 
 if __name__ == '__main__':
-    #if len(sys.argv) == 1:
-    #    print('give institute group name')
-    #    exit()
-    #institute = sys.argv[1]
-    create_mean_all(
+    if len(sys.argv) == 1:
+        print('Usage: create_group_stat {mean|avg|var|var1|std|std1|min|max|range} [institute]')
+        exit()
+    operator = sys.argv[1]
+    institute = sys.argv[2] if len(sys.argv) >= 3 else None  # e.g. DMI
+    periods = sys.argv[3] if len(sys.argv) >= 4 else ((1951, 2000), (2031, 2060), (2071, 2100))
+    # periods=((2071, 2100),)
+
+    create_stat(
         inroot='/tos-project4/NS9076K/data/cordex-norway/EUR-11',
-        outroot='/tos-project4/NS9076K/data/cordex-norway/mean' # , institute='DMI', periods=((2071, 2100),)
+        outroot='/tos-project4/NS9076K/data/cordex-norway', 
+        operator=operator,
+        institute=institute, 
+        periods=periods
     )
