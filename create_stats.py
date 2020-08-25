@@ -97,15 +97,17 @@ def write_nc4_season(src1, src, dst, y1, y2, month):
             x[:] = variable[:]
         
 
-def create_merged_season(inroot, outroot, month, stat_op, y_min, y_max, infiles, outfile):
-    season = {12: 'winter', 3: 'spring', 6: 'summer', 9: 'autumn'}
-    basefile = outfile + '_%s.nc' % season[month]
-    outfile_full = os.path.join(outroot, 'seasons', season[month], basefile)
+def extract_season(inroot, infiles, outroot, outfile, month, y_min, y_max):
+    season = {0: 'full', 3: 's1', 6: 's2', 9: 's3', 12: 's4'}
+    basefile = outfile + '_%s_merged.nc' % season[month]
+    outfile_full = os.path.join(outroot, season[month], 'merged', basefile)
     print('Output:')
     print('   ', basefile)
     if os.path.isfile(outfile_full):
-            print('Exists')
-            return
+        print('Exists')
+        return outfile_full
+    #print('TODO:', outfile_full)
+    #return
     infiles_full = [os.path.join(inroot, f) for f in infiles]
     tmp = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
 
@@ -116,25 +118,29 @@ def create_merged_season(inroot, outroot, month, stat_op, y_min, y_max, infiles,
     if not os.path.isdir(odir):
         os.makedirs(odir)
         print('Created dir:', odir)
-    os.rename(tmp, outfile_full)        
+    os.rename(tmp, outfile_full)
+    return outfile_full
 
 
-def create_merged_statistics(inroot, outroot, month, stat_op, y_min, y_max, infiles, outfile):
-    basefile = outfile + '_%s.nc' % stat_op
-    outfile_full = os.path.join(outroot, stat_op, basefile)
+def create_statistics(inroot, infiles, outroot, outfile, month, y_min, y_max, stat_op):
+    season = {0: 'full', 3: 's1', 6: 's2', 9: 's3', 12: 's4'}
+    basefile = outfile + '_%s_%s.nc' % (season[month], stat_op)
+    outfile_full = os.path.join(outroot, season[month], stat_op, basefile)
     print('Output:')
     print('   ', basefile)
     if os.path.isfile(outfile_full):
-            print('Exists')
-            return
+        print('Exists')
+        return outfile_full
+    #print('TODO:', outfile_full)
+    #return
     tmp = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
-    infiles_full = ''
-    for f in infiles:
+    infiles_full = os.path.join(inroot, infiles[0])
+    for f in infiles[1:]:
         infiles_full += ' ' + os.path.join(inroot, f)
 
     # diff between timmean and timavg:
     # https://code.mpimet.mpg.de/projects/cdo/embedded/index.html#x1-3490002.8
-    cmd = "cdo tim%s -seltimestep%s -cat '%s' %s" % (stat_op, intervals, infiles_full, tmp)
+    cmd = "cdo %s -cat '%s' %s" % (stat_op, infiles_full, tmp)
     ret = os.system(cmd)
     
     print('Return status:', ret)
@@ -144,7 +150,8 @@ def create_merged_statistics(inroot, outroot, month, stat_op, y_min, y_max, infi
             os.makedirs(odir)
             print('Created dir:', odir)
         os.rename(tmp, outfile_full)
-
+        return outfile_full
+    return None
 
 
 def find_period(d1, d2, periods):
@@ -193,8 +200,6 @@ def create_stats(inroot, outroot, month, stat_op, institute=None, periods=((1951
 
     if not os.path.isdir(outroot):
         os.makedirs(outroot)
-
-    n = 0
     for outfile, infiles in path_map.items():
         infiles.sort()
         y_min, y_max = 100000, 0
@@ -203,21 +208,29 @@ def create_stats(inroot, outroot, month, stat_op, institute=None, periods=((1951
             y_min = min(y_min, int(f[-20:-16]))
             y_max = max(y_max, int(f[-11:-7]))   
             print('   ', f) 
-        create_merged_season(inroot, outroot, month, stat_op, y_min, y_max, infiles, outfile)
-        #create_merged_statistics(inroot, outroot, month, stat_op, y_min, y_max, infiles, outfile)
-        n += 1
-
+        if month == 0:
+            create_statistics(inroot, infiles, outroot, outfile, month, y_min, y_max, stat_op)
+        else:
+            outpath = extract_season(inroot, infiles, outroot, outfile, month, y_min, y_max)
+            if outpath:
+                create_statistics(os.path.dirname(outpath), [os.path.basename(outpath)], outroot, outfile, month, y_min, y_max, stat_op)
 
 # MAIN
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        print('Usage: create_stats {season} [{mean|avg|var|var1|std|std1|min|max|range} [{institute} [period]]]')
+    season = {'s1': 3, 's2': 6, 's3': 9, 's4': 12, 'full': 0}
+    stat_ops = {'merged': 0, 'timmean': 1, 'timavg': 2, 'timvar': 3, 'timstd': 4, 'timmin': 5, 'timmax': 6, 'timrange': 7}
+    try:
+        month = season[sys.argv[1]]
+        stat_op = sys.argv[2]
+        n = stat_ops[stat_op]
+    except:
+        print('Usage: create_stats {full|s1|s2|s3|s4} {merged|timmean|timavg|timvar|timstd|timmin|timmax|timrange} [{institute} [period]]')
         exit()
-    season = {'winter': 12, 'spring': 3, 'summer': 6, 'autumn': 9}
-
-    month = season[sys.argv[1]]
-    stat_op = sys.argv[2] if len(sys.argv) > 2 else None
+    if month == 0 and stat_op == 'merged':
+        print("Won't combine 'full' and 'merged'")
+        exit()
+        
     institute = sys.argv[3] if len(sys.argv) > 3 else None  # e.g. DMI
     periods = sys.argv[4] if len(sys.argv) > 4 else ((1951, 2000), (2031, 2060), (2071, 2100))
     # periods=((2071, 2100),)
