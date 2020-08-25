@@ -206,8 +206,6 @@ def create_stats(inroot, outroot, month, stat_op, institute=None, periods=((1951
         create_merged_season(inroot, outroot, month, stat_op, y_min, y_max, infiles, outfile)
         #create_merged_statistics(inroot, outroot, month, stat_op, y_min, y_max, infiles, outfile)
         n += 1
-        if n == 3:
-            break
 
 
 # MAIN
