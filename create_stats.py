@@ -48,6 +48,8 @@ MPI-CSC/MPI-M-MPI-ESM-LR/rcp26/r1i1p1/REMO2009/v1/day/pr/v20160525
 
 '''
 
+MERGED = 'merged'
+
 def make_season_indices(src, y1, y2, month):
     sub = []
     time = src.variables['time']
@@ -99,19 +101,20 @@ def write_nc4_season(src1, src, dst, y1, y2, month):
 
 def extract_season(inroot, infiles, outroot, outfile, month, y_min, y_max):
     season = {0: 'full', 3: 's1', 6: 's2', 9: 's3', 12: 's4'}
-    basefile = outfile + '_%s_merged.nc' % season[month]
-    outfile_full = os.path.join(outroot, season[month], 'merged', basefile)
+    opr = MERGED
+    basefile = outfile + '_%s_%s.nc' % (season[month], opr)
+    outfile_full = os.path.join(outroot, season[month], opr, basefile)
     print('Output:')
-    print('   ', basefile)
+    print(os.path.dirname(outfile_full))
+    print('   ', os.path.basename(outfile_full))
     if os.path.isfile(outfile_full):
-        print('Exists')
+        print('    ...exists')
         return outfile_full
-    #print('TODO:', outfile_full)
-    #return
-    infiles_full = [os.path.join(inroot, f) for f in infiles]
-    tmp = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
 
-    with nc4.Dataset(os.path.join(inroot, infiles[0])) as src1, nc4.MFDataset([os.path.join(inroot, f) for f in infiles]) as src, nc4.Dataset(tmp, "w") as dst:
+    tmp = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
+    infiles_full = [os.path.join(inroot, f) for f in infiles]
+
+    with nc4.Dataset(infiles_full[0]) as src1, nc4.MFDataset(infiles_full) as src, nc4.Dataset(tmp, "w") as dst:
         write_nc4_season(src1, src, dst, y_min, y_max, month)
         
     odir = os.path.dirname(outfile_full)
@@ -122,17 +125,17 @@ def extract_season(inroot, infiles, outroot, outfile, month, y_min, y_max):
     return outfile_full
 
 
-def create_statistics(inroot, infiles, outroot, outfile, month, y_min, y_max, stat_op):
+def create_statistics(inroot, infiles, outroot, outfile, month, stat_op):
     season = {0: 'full', 3: 's1', 6: 's2', 9: 's3', 12: 's4'}
     basefile = outfile + '_%s_%s.nc' % (season[month], stat_op)
     outfile_full = os.path.join(outroot, season[month], stat_op, basefile)
     print('Output:')
-    print('   ', basefile)
+    print(os.path.dirname(outfile_full))
+    print('   ', os.path.basename(outfile_full))
     if os.path.isfile(outfile_full):
-        print('Exists')
+        print('    ...exists')
         return outfile_full
-    #print('TODO:', outfile_full)
-    #return
+
     tmp = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
     infiles_full = os.path.join(inroot, infiles[0])
     for f in infiles[1:]:
@@ -209,32 +212,34 @@ def create_stats(inroot, outroot, month, stat_op, institute=None, periods=((1951
             y_max = max(y_max, int(f[-11:-7]))   
             print('   ', f) 
         if month == 0:
-            create_statistics(inroot, infiles, outroot, outfile, month, y_min, y_max, stat_op)
+            if stat_op != MERGED:
+                create_statistics(inroot, infiles, outroot, outfile, month, stat_op)
         else:
             outpath = extract_season(inroot, infiles, outroot, outfile, month, y_min, y_max)
-            if outpath:
-                create_statistics(os.path.dirname(outpath), [os.path.basename(outpath)], outroot, outfile, month, y_min, y_max, stat_op)
+            if outpath and stat_op != MERGED:
+                create_statistics(os.path.dirname(outpath), [os.path.basename(outpath)], outroot, outfile, month, stat_op)
 
 # MAIN
 
 if __name__ == '__main__':
     season = {'s1': 3, 's2': 6, 's3': 9, 's4': 12, 'full': 0}
-    stat_ops = {'merged': 0, 'timmean': 1, 'timavg': 2, 'timvar': 3, 'timstd': 4, 'timmin': 5, 'timmax': 6, 'timrange': 7}
+    stat_ops = {MERGED: 0, 'timmean': 1, 'timavg': 2, 'timvar': 3, 'timstd': 4, 'timmin': 5, 'timmax': 6, 'timrange': 7}
     try:
         month = season[sys.argv[1]]
         stat_op = sys.argv[2]
         n = stat_ops[stat_op]
     except:
-        print('Usage: create_stats {full|s1|s2|s3|s4} {merged|timmean|timavg|timvar|timstd|timmin|timmax|timrange} [{institute} [period]]')
+        print('Usage: create_stats {full|s1|s2|s3|s4} {merged|timmean|timavg|timvar|timstd|timmin|timmax|timrange} [{institute|all} [period]]')
         exit()
-    if month == 0 and stat_op == 'merged':
-        print("Won't combine 'full' and 'merged'")
-        exit()
-        
-    institute = sys.argv[3] if len(sys.argv) > 3 else None  # e.g. DMI
-    periods = sys.argv[4] if len(sys.argv) > 4 else ((1951, 2000), (2031, 2060), (2071, 2100))
-    # periods=((2071, 2100),)
 
+    institute = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] != "all" else None  # e.g. DMI
+    if len(sys.argv) > 5:
+        periods = [(int(sys.argv[i]), int(sys.argv[i+1])) for i in range(4, len(sys.argv), 2)]
+    else:
+        periods = ((1951, 2000), (2031, 2060), (2071, 2100))
+    print('Using all instutes' if institute == None else institute)
+    print('Using periods:', periods)
+    
     create_stats(
         inroot='/tos-project4/NS9076K/data/cordex-norway/EUR-11',
         outroot='/tos-project4/NS9076K/data/cordex-norway', 
