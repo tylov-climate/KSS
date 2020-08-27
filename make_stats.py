@@ -71,13 +71,15 @@ def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000
     for dd in glob.glob(os.path.join(inroot, '*/*/*/*/*/*/day/*/*')):
         subpath = dd.replace(inroot, '')
         institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id = subpath.split('/')
-        print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
-        period_m = {}
+        #print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
 
-        for file in glob.glob(os.path.join(dd, '*.nc')):
+        files = glob.glob(os.path.join(dd, '*.nc'))
+        period_map = {}
+        #print(dd, len(files))
+        for file in files:
             f = os.path.basename(file)
             relfile = os.path.join(subpath, f)
-            #print(relfile)
+            #print('   ', f)
             dt1 = dt.datetime.strptime(f[-20:-12], '%Y%m%d')
             dt2 = dt.datetime.strptime(f[-11:-3], '%Y%m%d')                
             p = find_period(dt1, dt2, periods)
@@ -86,18 +88,19 @@ def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000
                 continue
             if p == -1:
                 continue
-            period_m[p] = file
+            if p in period_map:
+                period_map[p].append(file)
+            else:
+                period_map[p] = [file]
 
-        outfile = None
-        for p, file in period_m.items():
+        for p, period_files in period_map.items():
             for op in ('timmean', 'timvar'):
                 if stat_op == 'all' or stat_op == op:
                     for s, m in seasons.items():
-                        if season == 'all' or season == s:
+                        if s != 'all' and (season == 'all' or season == s):
                             outfile = os.path.join(outroot, '%s/%s_%s_%s_%d-%d' % (s, var_id, experiment_id, op, periods[p][0], periods[p][1]), subpath,
                                                    f[:-len('_day_20310101-20351231.nc')] + '_%s_%s_%d-%d.nc' % (op, s, periods[p][0], periods[p][1]))
-            print(outfile)
-        #exit()
+                            print(outfile)
 
 
 # MAIN
@@ -120,7 +123,7 @@ if __name__ == '__main__':
 
     create_stats(
         inroot='/tos-project4/NS9076K/data/cordex-norway/EUR-11',
-        outroot='/tos-project4/NS9076K/data/cordex-norway', 
+        outroot='/tos-project4/NS9076K/data/cordex-norway',
         seasons=seasons,
         season=season,
         stat_op=stat_op,

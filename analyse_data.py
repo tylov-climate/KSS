@@ -7,6 +7,9 @@ import glob
 import netCDF4 as nc4
 import numpy as np
 import json
+import matplotlib.pyplot as plt 
+import seaborn as sns
+
 
 
 def save_json_statistics(inroot, output):
@@ -59,16 +62,7 @@ def get_statistics(inroot, json_file):
     return stats
     
 
-
-
-# MAIN
-
-if __name__ == '__main__':
-    inroot='/tos-project4/NS9076K/data/cordex-norway'
-    json_file = 'kss_analysis.json'
-    
-    stats = get_statistics(inroot, json_file)
-    print('Items in', json_file, ':', len(stats))
+def make_plots(stats):
     tas_n, pr_n = 0, 0
     for exp in ('historical', 'rcp26', 'rcp45', 'rcp85'):
         for stat_op in ('timmean', 'timvar'):
@@ -80,5 +74,18 @@ if __name__ == '__main__':
             #for e in data:
             #    print(e['institute_id'], e['model_id'], e['ensemble_id'], e['rcm_version'],':', e['value'], e['experiment_id'])
     print('tas, pr, sum:', tas_n, pr_n, tas_n + pr_n)
+
+
+
+# MAIN
+
+if __name__ == '__main__':
+    inroot='/tos-project4/NS9076K/data/cordex-norway'
+    json_file = 'kss_analysis.json'
+    
+    stats = get_statistics(inroot, json_file)
+    print('Items in', json_file, ':', len(stats))
+    
+    make_plots(stats)
     
             
