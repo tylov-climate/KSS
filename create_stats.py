@@ -143,7 +143,8 @@ def create_statistics(inroot, infiles, outroot, outfile, month, stat_op):
 
     # diff between timmean and timavg:
     # https://code.mpimet.mpg.de/projects/cdo/embedded/index.html#x1-3490002.8
-    cmd = "cdo %s -cat '%s' %s" % (stat_op, infiles_full, tmp)
+    #cmd = "cdo %s -cat '%s' %s" % (stat_op, infiles_full, tmp)
+    cmd = "cdo %s,DJF -cat '%s' %s" % (stat_op, infiles_full, tmp)
     ret = os.system(cmd)
     
     print('Return status:', ret)
@@ -211,7 +212,7 @@ def create_stats(inroot, outroot, month, stat_op, institute=None, periods=((1951
             y_min = min(y_min, int(f[-20:-16]))
             y_max = max(y_max, int(f[-11:-7]))   
             print('   ', f) 
-        if month == 0:
+        if True: # month == 0:
             if stat_op != MERGED:
                 create_statistics(inroot, infiles, outroot, outfile, month, stat_op)
         else:
@@ -227,7 +228,7 @@ if __name__ == '__main__':
     try:
         month = season[sys.argv[1]]
         stat_op = sys.argv[2]
-        n = stat_ops[stat_op]
+        #n = stat_ops[stat_op]
     except:
         print('Usage: create_stats {full|s1|s2|s3|s4} {merged|timmean|timavg|timvar|timstd|timmin|timmax|timrange} [{institute|all} [period]]')
         exit()
