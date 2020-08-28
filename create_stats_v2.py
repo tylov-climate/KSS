@@ -115,7 +115,6 @@ def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000
                                 print('Created:', outfile)
                             else:
                                 print('Return status:', ret)
-                            exit()
 
 
 
@@ -130,7 +129,6 @@ if __name__ == '__main__':
         stat_op = sys.argv[2]
         n = seasons[season]
         n = stat_ops[stat_op]
-        periods = sys.argv[4] if len(sys.argv) > 4 else ((1951, 2000), (2031, 2060), (2071, 2100))
         if len(sys.argv) > 4:
             periods = [(int(sys.argv[i]), int(sys.argv[i+1])) for i in range(3, len(sys.argv), 2)]
     except:
@@ -139,7 +137,7 @@ if __name__ == '__main__':
 
     create_stats(
         inroot='/tos-project4/NS9076K/data/cordex-norway/EUR-11',
-        outroot='/tos-project4/NS9076K/data/cordex-norway',
+        outroot='/tos-project4/NS9076K/data/cordex-norway/stats_v2',
         seasons=seasons,
         season=season,
         stat_op=stat_op,

@@ -243,7 +243,7 @@ if __name__ == '__main__':
     
     create_stats(
         inroot='/tos-project4/NS9076K/data/cordex-norway/EUR-11',
-        outroot='/tos-project4/NS9076K/data/cordex-norway', 
+        outroot='/tos-project4/NS9076K/data/cordex-norway/stats_v1', 
         month=month,
         stat_op=stat_op,
         institute=institute, 

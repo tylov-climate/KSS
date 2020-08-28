@@ -56,8 +56,10 @@ def save_json_statistics(inroot, output):
 def get_statistics(inroot, json_file):
     if os.path.exists(json_file):
         with open(json_file, 'r') as f:
+            print('loading prestored results...')
             stats = json.load(f)
     else:
+        print('creating results...')
         stats = save_json_statistics(inroot, json_file)
     return stats
     
@@ -80,7 +82,7 @@ def make_plots(stats):
 # MAIN
 
 if __name__ == '__main__':
-    inroot='/tos-project4/NS9076K/data/cordex-norway'
+    inroot='/tos-project4/NS9076K/data/cordex-norway/stats_v1'
     json_file = 'kss_analysis.json'
     
     stats = get_statistics(inroot, json_file)
