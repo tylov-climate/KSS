@@ -85,17 +85,19 @@ def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000
                 period_map[p] = [file]
 
         for p, period_files in period_map.items():
-            base = os.path.basename(period_files[0])
+            #base = os.path.basename(period_files[0])
             for op in ('timmean', 'timvar'):
                 if stat_op == 'all' or stat_op == op:
                     for s, m in seasons.items():
                         if s != 'all' and (season == 'all' or season == s):
-                            outfile = os.path.join(outroot, '%s/%s_%s_%s_%d-%d' % (s, var_id, experiment_id[:5], op, periods[p][0], periods[p][1]),
-                                                   base[:-len('_day_20310101-20351231.nc')] + '_%s_%s_%d-%d.nc' % (op, s, periods[p][0], periods[p][1]))
+                            period_id = '%d-%d' % (periods[p][0], periods[p][1])
+                            experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % ('EUR-11', institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
+                            outfile = os.path.join(outroot, '%s/%s_%s_%s_%s' % (s, var_id, op, period_id, experiment_id[:5]),
+                                                   experiment + '_%s_%s_%s.nc' % (op, s, period_id))
+
                             if os.path.isfile(outfile):
                                 print('    ...exists')
                                 continue
-
                             tmpfile = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
                             infiles = os.path.join(inroot, period_files[0])
                             for f in period_files[1:]:
@@ -115,7 +117,7 @@ def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000
                                 print('Created:', outfile)
                             else:
                                 print('Return status:', ret)
-
+                            exit()
 
 
 # MAIN
