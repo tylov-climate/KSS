@@ -58,33 +58,24 @@ def find_period(d1, d2, periods):
     
 
 def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
-    #if not os.path.isdir(outroot):
-    #    os.makedirs(outroot)
-        
-    # MPI-CSC/MPI-M-MPI-ESM-LR/rcp26/r1i1p1/REMO2009/v1/day/pr/v20160525
-    #     pr_EUR-11_MPI-M-MPI-ESM-LR_rcp26_r1i1p1_MPI-CSC-REMO2009_v1_day_20310101-20351231.nc
-             
-    # institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id 
     if inroot[-1] != '/':
         inroot += '/'
+    if not os.path.isdir(outroot):
+        os.makedirs(outroot)
 
     for dd in glob.glob(os.path.join(inroot, '*/*/*/*/*/*/day/*/*')):
         subpath = dd.replace(inroot, '')
         institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id = subpath.split('/')
         #print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
 
-        files = glob.glob(os.path.join(dd, '*.nc'))
         period_map = {}
-        #print(dd, len(files))
-        for file in files:
-            f = os.path.basename(file)
-            relfile = os.path.join(subpath, f)
-            #print('   ', f)
-            dt1 = dt.datetime.strptime(f[-20:-12], '%Y%m%d')
-            dt2 = dt.datetime.strptime(f[-11:-3], '%Y%m%d')                
+        for file in glob.glob(os.path.join(dd, '*.nc')):
+            base = os.path.basename(file)
+            dt1 = dt.datetime.strptime(base[-20:-12], '%Y%m%d')
+            dt2 = dt.datetime.strptime(base[-11:-3], '%Y%m%d')                
             p = find_period(dt1, dt2, periods)
             if p == -2:
-                print('Warning: skipping file partially in period:', f)
+                print('Warning: skipping file partially in period:', base)
                 continue
             if p == -1:
                 continue
@@ -94,13 +85,38 @@ def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000
                 period_map[p] = [file]
 
         for p, period_files in period_map.items():
+            base = os.path.basename(period_files[0])
             for op in ('timmean', 'timvar'):
                 if stat_op == 'all' or stat_op == op:
                     for s, m in seasons.items():
                         if s != 'all' and (season == 'all' or season == s):
-                            outfile = os.path.join(outroot, '%s/%s_%s_%s_%d-%d' % (s, var_id, experiment_id, op, periods[p][0], periods[p][1]), subpath,
-                                                   f[:-len('_day_20310101-20351231.nc')] + '_%s_%s_%d-%d.nc' % (op, s, periods[p][0], periods[p][1]))
-                            print(outfile)
+                            outfile = os.path.join(outroot, '%s/%s_%s_%s_%d-%d' % (s, var_id, experiment_id[:5], op, periods[p][0], periods[p][1]),
+                                                   base[:-len('_day_20310101-20351231.nc')] + '_%s_%s_%d-%d.nc' % (op, s, periods[p][0], periods[p][1]))
+                            if os.path.isfile(outfile):
+                                print('    ...exists')
+                                continue
+
+                            tmpfile = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
+                            infiles = os.path.join(inroot, period_files[0])
+                            for f in period_files[1:]:
+                                infiles += ' ' + os.path.join(inroot, f)
+                            if s == 'FULL':
+                                cmd = "cdo %s -cat '%s' %s" % (op, infiles, tmpfile)
+                            else:
+                                cmd = "cdo %s -selseason,%s -cat '%s' %s" % (op, s, infiles, tmpfile)
+                            ret = os.system(cmd)
+
+                            if ret == 0:
+                                odir = os.path.dirname(outfile)
+                                if not os.path.isdir(odir):
+                                    os.makedirs(odir)
+                                    print('Created dir:', odir)
+                                os.rename(tmpfile, outfile)
+                                print('Created:', outfile)
+                            else:
+                                print('Return status:', ret)
+                            exit()
+
 
 
 # MAIN
