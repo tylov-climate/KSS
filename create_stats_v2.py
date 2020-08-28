@@ -117,7 +117,6 @@ def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000
                                 print('Created:', outfile)
                             else:
                                 print('Return status:', ret)
-                            exit()
 
 
 # MAIN
