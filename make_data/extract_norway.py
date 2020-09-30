@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
 # Coded by Tyge Lovset, 2020
+# Ralf Dösher: Nordic, 3 km, Nordic 12km, Alps 3km. Convectional Permitting
 
 import os
 import sys
@@ -32,9 +33,10 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
     q = proj.convert_to_rotpole(nor_lonlat[1])
     print('Rotated pole lon:',(p[0],q[0]), 'lat:',(p[1],q[1]))
 
+    # Rather use absolute pixels p=lower left, q=upper right
     p = (196, 279)
     q = (303, 402)
-        
+
     if inroot[-1] != '/':
         inroot += '/'
     for mpath in glob.glob(os.path.join(inroot, '*')):
@@ -50,7 +52,7 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
                     print('     ', f)
                     if not os.path.isfile(outfile):
                         # Crop bounding box of Norway
-                        
+
                         #ret = os.system('ncks -d rlon,%f,%f -d rlat,%f,%f %s -O %s'
                         ret = os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s'
                                          % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
@@ -72,7 +74,7 @@ def sample_test():
     os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1],
         os.path.join(samples, 'eur11', 'tas' + base),
         os.path.join(samples, 'nor11', 'tas' + base)))
-    os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1], 
+    os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1],
         os.path.join(samples, 'eur11', 'pr' + base),
         os.path.join(samples, 'nor11', 'pr' + base)))
 

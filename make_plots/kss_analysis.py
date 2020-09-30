@@ -8,12 +8,19 @@ import netCDF4 as nc4
 import numpy as np
 import json
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import seaborn as sns
 import pandas as pd
 
-## ANALYSE2
+def load_mask():
+    img = mpimg.imread('norway_mask.png')
+    img = img[:,:,0] < 0.5
+    return img
 
-def save_statistics_v1(inroot, output):
+
+# Save load mean of the statistical data over periods and seasons. (avg, variance, ...)
+
+def save_statistics_v1_data(inroot, output):
     seasons, exps, stat_ops, variables, models = [], [], [], [], []
     seasons_r, exps_r, stat_ops_r, variables_r, models_r = {}, {}, {}, {}, {}
 
@@ -53,7 +60,6 @@ def save_statistics_v1(inroot, output):
                 {variables[i]: i for i in range(len(variables))},
                 {models[i]: i for i in range(len(models))}]
     }
-
     print('Dimensions:')
     print(seasons)
     print(exps)
@@ -66,6 +72,7 @@ def save_statistics_v1(inroot, output):
     print(stats.shape)
     d = dims['inv']
     n = 0
+    mask_img = load_mask()
     for sub_path in sorted(glob.glob(inroot + '/*/*/*')):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
@@ -77,18 +84,23 @@ def save_statistics_v1(inroot, output):
                 for ncvname, ncvar in src.variables.items():
                     if ncvname == var_id:
                         data = ncvar[:]
+                        data = np.ma.masked_array(data, mask=mask_img) # Mask it
                         value = np.mean(data)
                         stats[d[0][season]][d[1][exp_name]][d[2][stat_op]][d[3][var_id]][d[4][model_name]] = value
-                        #print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value)
+                        print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value)
                         n += 1
+    return stats, dims
+    '''
     print('assigned values:', n, stats.shape)
     np.save(output + '.npy', stats)
     with open(output + '.json', 'w') as f:
         json.dump(dims, f, indent=4)
+    '''
+
 
 def get_statistics_v1(inroot, file):
     if not os.path.exists(file + '.npy'):
-        save_statistics_v1(inroot, file)
+        save_statistics_v1_data(inroot, file)
     print('loading results...')
     stats = np.load(file + '.npy')
     with open(file + '.json', 'r') as f:
@@ -96,101 +108,24 @@ def get_statistics_v1(inroot, file):
     return stats, dims
 
 
-def make_plots(stats, dims):
-    fig = plt.figure(figsize=(18, 10))
-    pos = [2, n, 0]
-    pass
-
-
-def pairgrid_plots(stats, dims, statop, season=None, scenario=None, period=None):
-    season_ren = {'full': 'annual', 's1': 'spring', 's2': 'summer', 's3': 'autumn', 's4': 'winter',
-                  'FULL': 'annual', 'MAM': 'spring', 'JJA': 'summer', 'SON': 'autumn', 'DJF': 'winter'}
-    stat_ren = {'timmean': 'mean', 'timvar': 'variance'}
-    exp_ren = {'timmean': 'mean', 'timvar': 'variance'}
-
-    d = dims['inv']
-    op = d[2][statop]
-    m = {}
-    exps = [i for i in range(len(dims['exps'])) if ((period is None) or period in dims['exps'][i]) and ((scenario is None) or scenario in dims['exps'][i])]
-    seasons = [i for i in range(len(dims['seasons']))] if season is None else [d[0][season]]
-    #scenarios = [i for i in range(len(dims['exps'])) if scenario in dims['exps'][i]] if scenario else []
-    #periods = [i for i in range(len(dims['exps'])) if period in dims['exps'][i]] if period else []
-    #print(dims['exps'])
-    #print('scen', [dims['exps'][i] for i in scenarios])
-    #print('peri', [dims['exps'][i] for i in periods])
-    #print(seasons)
-    #exit()
-    '''
-    print('Building DataFrame')
-    for s in seasons:
-        for e in exps:
-            tas = stats[s][e][op][d[3]['tas']]
-            pr = stats[s][e][op][d[3]['pr']]
-            exp_label = dims['exps'][e]
-            season_label = season_ren[dims['seasons'][s]]
-            #stat_label = stat_ren[statop]
-            name = '%s %s %s' % ('tas', season_label, exp_label)
-            print(name)
-            m[name] = tas
-            name = '%s %s %s' % ('pr', season_label, exp_label)
-            m[name] = pr
-    print('Define DataFrame')
-    #df = pd.DataFrame(m)
-    #print(df)
-    #return
-
-    g = sns.PairGrid(df)
-    g.map_upper(sns.regplot)
-    g.map_lower(sns.kdeplot, cmap = 'Blues_d')
-    g.map_diag(sns.kdeplot, lw = 3, legend = True);
-    plt.show()
-    '''
-    fig = plt.figure(figsize=(18, 9))
-    n = 0
-    #cols = seasons if season is None else
-    pos = [len(exps), len(seasons), n]
-    print('exps', [dims['exps'][i] for i in exps], pos)
-
-    for e in exps:
-        for s in seasons:
-            # plot one week pr / tas
-            n += 1
-            pos[2] = n
-            ax = fig.add_subplot(*pos)
-            tas = stats[s][e][op][d[3]['tas']]
-            pr = stats[s][e][op][d[3]['pr']]
-            exp_label = dims['exps'][e]
-            season_label = season_ren[dims['seasons'][s]]
-            tas_name = '%s %s %s' % ('tas', season_label, exp_label)
-            pr_name = '%s %s %s' % ('pr', season_label, exp_label)
-            print(tas_name)
-            df = pd.DataFrame({tas_name: tas, pr_name: pr})
-            sns.regplot(data=df, x=tas_name, y=pr_name, fit_reg=True, ax=ax)
-
-    plt.show()
-
 # MAIN
 
-
 if __name__ == '__main__':
-    inroot='/tos-project4/NS9076K/data/cordex-norway/stats_v1'
+    #inroot='/tos-project4/NS9076K/data/cordex-norway/stats_v1'
+    inroot='C:/Dev/DATA/stats_v1'
     file = 'kss_analysis'
-    '''
-    import seaborn as sb
-    df = sb.load_dataset('tips')
-    print(df)
-    g = sb.FacetGrid(df, col = 'sex', hue = 'time', palette='Set1', hue_order=['Dinner', 'Lunch'])
-    g.map(plt.scatter, 'total_bill', 'tip').add_legend()
-    plt.show()
-    exit()
-    '''
-    stats, dims = get_statistics_v1(inroot, file)
-    d = dims['inv']
-    s = dims['seasons']
-    e = dims['exps']
-    o = dims['stat_ops']
-    v = dims['variables']
-    m = dims['models']
-    print(stats.shape)
 
-    pairgrid_plots(stats, dims, statop='timmean', period='2071-2100') # , period='2031-2060') # , period='2071-2100', season='s1'
+    stats, dim = save_statistics_v1_data(inroot, file)
+    print(stats.shape)
+    exit()
+
+    stats, dims = get_statistics_v1(inroot, file)
+    for m in dims['models']:
+        print(m)
+    print("")
+    print(stats.shape)
+    print(dims['seasons'])
+    print(dims['exps'])
+    print(dims['stat_ops'])
+    print(dims['variables'])
+

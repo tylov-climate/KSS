@@ -55,9 +55,9 @@ def find_period(d1, d2, periods):
         elif (p[0] <= d1.year <= p[1]) or (p[0] <= d2.year <= p[1]): return -2
         i += 1
     return -1
-    
 
-def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
+
+def make_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
     if inroot[-1] != '/':
         inroot += '/'
     if not os.path.isdir(outroot):
@@ -72,7 +72,7 @@ def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000
         for file in glob.glob(os.path.join(dd, '*.nc')):
             base = os.path.basename(file)
             dt1 = dt.datetime.strptime(base[-20:-12], '%Y%m%d')
-            dt2 = dt.datetime.strptime(base[-11:-3], '%Y%m%d')                
+            dt2 = dt.datetime.strptime(base[-11:-3], '%Y%m%d')
             p = find_period(dt1, dt2, periods)
             if p == -2:
                 print('Warning: skipping file partially in period:', base)
@@ -119,7 +119,7 @@ def create_stats(inroot, outroot, seasons, season, stat_op, periods=((1951, 2000
                                 print('Return status:', ret)
 
 
-# MAIN
+# Create mean and variance average data over all the periods, seasons (full = all seasons)
 
 if __name__ == '__main__':
     periods = ((1951, 2000), (2031, 2060), (2071, 2100))
@@ -133,10 +133,10 @@ if __name__ == '__main__':
         if len(sys.argv) > 4:
             periods = [(int(sys.argv[i]), int(sys.argv[i+1])) for i in range(3, len(sys.argv), 2)]
     except:
-        print('Usage: create_stats {all|FULL|MAM|JJA|SON|DJF} {all|timmean|timavg|timvar|timstd|timmin|timmax|timrange} [intervals]')
+        print('Usage: make_stats {all|FULL|MAM|JJA|SON|DJF} {all|timmean|timavg|timvar|timstd|timmin|timmax|timrange} [intervals]')
         exit()
 
-    create_stats(
+    make_stats(
         inroot='/tos-project4/NS9076K/data/cordex-norway/EUR-11',
         outroot='/tos-project4/NS9076K/data/cordex-norway/stats_v2',
         seasons=seasons,
