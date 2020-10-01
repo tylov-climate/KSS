@@ -13,6 +13,21 @@ import seaborn as sns
 import pandas as pd
 import math
 
+original_models = [
+    'ICHEC-EC-EARTH_HIRHAM5_r3i1p1',
+    'ICHEC-EC-EARTH_RCA4_r12i1p1',
+    'ICHEC-EC-EARTH_CCLM4-8-17_r12i1p1',
+    'ICHEC-EC-EARTH_RACMO22E_r1i1p1',
+    'CNRM-CERFACS-CNRM-CM5_RCA4_r1i1p1',
+    'CNRM-CERFACS-CNRM-CM5_CCLM4-8-17_r1i1p1',
+    'IPSL-IPSL-CM5A-MR_RCA4_r1i1p1',
+    'IPSL-IPSL-CM5A-MR_WRF331F_r1i1p1',
+    'MPI-M-MPI-ESM-LR_REMO2009_r1i1p1',
+    'MPI-M-MPI-ESM-LR_RCA4_r1i1p1',
+    'MPI-M-MPI-ESM-LR_CCLM4-8-17_r1i1p1',
+    'MOHC-HadGEM2-ES_RCA4_r1i1p1'
+]
+
 
 def load_mask():
     img = mpimg.imread('norway_mask.png')
@@ -22,14 +37,18 @@ def load_mask():
 
 # Save load mean of the statistical data over periods and seasons. (avg, variance, ...)
 
-def average_v1data(inroot, output):
+def average_data(inroot, output, version=1):
     seasons, exps, stat_ops, variables, models = [], [], [], [], []
     seasons_r, exps_r, stat_ops_r, variables_r, models_r = {}, {}, {}, {}, {}
+    dirpattern = '/*/*/*' if version == 1 else '/*/*'
 
-    for sub_path in sorted(glob.glob(inroot + '/*/*/*')):
+    for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
-            domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period, season, stat_op = f[:-3].split('_')
+            if version == 1:
+                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period, season, stat_op = f[:-3].split('_')
+            else:
+                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, stat_op, season, period = f[:-3].split('_')
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
             if season not in seasons:
@@ -62,23 +81,21 @@ def average_v1data(inroot, output):
                 {variables[i]: i for i in range(len(variables))},
                 {models[i]: i for i in range(len(models))}]
     }
-    #print('Dimensions:')
-    #print(seasons)
-    #print(exps)
-    #print(stat_ops)
-    #print(variables)
-    #print(len(models), 'models')
     stats = np.empty(shape=(len(seasons), len(exps), len(stat_ops), len(variables), len(models)), dtype=float)
     stats.fill(np.nan)
-
     print(stats.shape)
+
     d = dims['inv']
     n = 0
     mask_img = load_mask()
-    for sub_path in sorted(glob.glob(inroot + '/*/*/*')):
+    for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
-            domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period, season, stat_op = f[:-3].split('_')
+            if version == 1:
+                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period, season, stat_op = f[:-3].split('_')
+            else:
+                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, stat_op, season, period = f[:-3].split('_')
+
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
 
@@ -90,7 +107,7 @@ def average_v1data(inroot, output):
                         data = np.ma.masked_array(data, mask=mask_img) # Mask is with Norway shape file.
                         value = np.mean(data)
                         stats[d[0][season]][d[1][exp_name]][d[2][stat_op]][d[3][var_id]][d[4][model_name]] = value
-                        print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value, value_unmasked)
+                        #print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value, value_unmasked)
                         n += 1
     return stats, dims
 
@@ -102,7 +119,7 @@ def create_dataframe(stats, dims, file):
 
     m = {'Season': [], 'Experiment': [], 'Period': [],
          'Institute': [], 'Model': [], 'Model Id': [], 'Ensemble': [], 'RCM Ver': [],
-         'TAS celsius': [], 'PR mm.day': [],
+         'TAS celsius': [], 'PR mm.30.days': [],
          'TAS': [], 'PR': [],
          'TAS variance': [], 'PR variance': []}
     for season in dims['seasons']:
@@ -127,13 +144,22 @@ def create_dataframe(stats, dims, file):
                     m['Ensemble'].append(model[2])
                     m['RCM Ver'].append(model[4])
                     m['TAS celsius'].append(tas_mean - 273.15)
-                    m['PR mm.day'].append(pr_mean * (24*60*60))
+                    m['PR mm.30.days'].append(pr_mean * (30*24*60*60))
                     m['TAS'].append(tas_mean)
                     m['PR'].append(pr_mean)
                     m['TAS variance'].append(tas_variance)
                     m['PR variance'].append(pr_variance)
 
     df = pd.DataFrame(m)
+    # Merge models to match original_models[] signature.
+    models = df[df.columns[4:7]].apply(
+        lambda x: '_'.join(x.dropna().astype(str)),
+        axis=1
+    )
+    is_original = models == original_models[0]
+    for i in range(1, len(original_models)):
+        is_original |= models == original_models[i]
+    df['Original Model'] = is_original
     df.to_pickle(file + '.pkl')
     df.to_csv(file + '.csv')
     return df
@@ -143,14 +169,15 @@ def create_dataframe(stats, dims, file):
 
 
 if __name__ == '__main__':
-    #inroot='/tos-project4/NS9076K/data/cordex-norway/stats_v1'
-    inroot='C:/Dev/DATA/stats_v1'
-    file = 'kss_analysis'
+    version = 1
+    #inroot='/tos-project4/NS9076K/data/cordex-norway/stats_v%d' % version
+    inroot='C:/Dev/DATA/stats_v%d' % version
+    file = 'kss_analysis_v%d' % version
 
     if os.path.exists(file + '.pkl'):
         df = pd.read_pickle(file + '.pkl')
     else:
-        stats, dims = average_v1data(inroot, file)
+        stats, dims = average_data(inroot, file, version)
         print(stats.shape)
         print(stats.shape)
         print(dims['seasons'])
