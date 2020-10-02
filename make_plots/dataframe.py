@@ -107,7 +107,7 @@ def average_data(inroot, output, version=1):
                         data = np.ma.masked_array(data, mask=mask_img) # Mask is with Norway shape file.
                         value = np.mean(data)
                         stats[d[0][season]][d[1][exp_name]][d[2][stat_op]][d[3][var_id]][d[4][model_name]] = value
-                        #print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value, value_unmasked)
+                        print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value, value_unmasked)
                         n += 1
     return stats, dims
 
@@ -169,7 +169,7 @@ def create_dataframe(stats, dims, file):
 
 
 if __name__ == '__main__':
-    version = 1
+    version = 2
     #inroot='/tos-project4/NS9076K/data/cordex-norway/stats_v%d' % version
     inroot='C:/Dev/DATA/stats_v%d' % version
     file = 'kss_analysis_v%d' % version
