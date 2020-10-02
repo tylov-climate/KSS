@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+import numpy as np
+import netCDF4 as nc4
+#import xarray as xr
+
+import cartopy
+import cartopy.crs as ccrs
+import cartopy.feature as cpf
+import matplotlib.pyplot as plt 
+
+nor_plate_carree = (5.684921607269574, 31.682012795900178, 57.73557430824275, 70.93623338069854)
+nor_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
+
+
+def test_sample():
+    # load NetCDF file into variable - using xarray open dataset function
+    nc_tas = nc4.Dataset('sample_nor/tas_EUR-11_ICHEC-EC-EARTH_rcp85_r12i1p1_SMHI-RCA4_v1_day_20060101-20101231.nc')
+    nc_pr = nc4.Dataset('sample_nor/pr_EUR-11_ICHEC-EC-EARTH_rcp85_r12i1p1_SMHI-RCA4_v1_day_20060101-20101231.nc')
+    return nc_tas, nc_pr
+
+'''
+def plot_region(nc_tas, nc_pr):
+    plt.figure(figsize=(20, 20))
+    #plt.figure()
+    rotated_pole = ccrs.RotatedPole(pole_longitude=-162.0, pole_latitude=39.25)
+    ax = plt.axes(projection=rotated_pole)
+    ax.add_feature(cpf.LAND)
+    ax.add_feature(cpf.OCEAN)
+    ax.add_feature(cpf.COASTLINE)
+    ax.add_feature(cpf.BORDERS, linestyle=':')
+    ax.add_feature(cpf.LAKES,   alpha=0.5)
+    #ax.add_feature(cpf.RIVERS)
+    #ax.set_extent(nor_lonlat, crs=ccrs.PlateCarree())
+    ax.set_extent(nor_rotated_pole, crs=rotated_pole)
+'''
+
+def normalize3(nc, name, step):
+    step = 0
+    var = nc.variables[name][step, :, :] # near surface temperature
+    # means and standard deviation.
+    mean = np.mean(var)
+    std = np.std(var)
+    # normalize step
+    var -= mean
+    var /= std
+    return var
+
+
+def plot_tas_pr(rlat, rlon, tas, pr, step, fig, pos):
+    sum = pr - tas
+
+    rotated_pole = ccrs.RotatedPole(pole_longitude=-162.0, pole_latitude=39.25)
+    #ax = plt.axes(projection=rotated_pole)
+    ax = fig.add_subplot(pos, projection=rotated_pole)
+    ax.set_extent(nor_rotated_pole, crs=rotated_pole)
+    ax.add_feature(cpf.OCEAN)
+    ax.add_feature(cpf.COASTLINE)
+    ax.add_feature(cpf.BORDERS, linestyle=':')
+    plt.contourf(rlon, rlat, sum, 30, transform=rotated_pole)
+    #plt.pcolormesh(rlon, rlat, tas, transform=rotated_pole)
+    
+
+if __name__ == "__main__":
+    data_source = '/tos-project4/NS9076K/data/cordex/output/EUR-11'
+    data_root = '/tos-project4/NS9076K/data/cordex-norway/EUR-11'
+
+    nc_tas, nc_pr = test_sample()
+    #time = nctas.variables['time'][:]
+    #lat = nctas.variables['lat'][:]
+    #lon = nctas.variables['lon'][:]
+    rlat = nc_tas.variables['rlat'][:]
+    rlon = nc_tas.variables['rlon'][:]
+
+    fig = plt.figure(figsize=(10, 15))
+
+    poslist = (111, 112, 121, 122)
+    for step in (0, 3):
+        tas = normalize3(nc_tas, 'tas', step)
+        pr = normalize3(nc_pr, 'pr', step)
+        plot_tas_pr(rlat, rlon, tas, pr, step, fig, poslist[step])
+    
+    #plt.savefig('plot.png')
+    #plot_scatter(nctas, ncpr)
+    #plot_region(nctas, ncpr)
+    plt.show()

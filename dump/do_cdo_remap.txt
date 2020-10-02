@@ -1,0 +1,1 @@
+cdo remapbil,../griddes4.txt ../../../data/cordex/output/EUR-11/RMIB-UGent/CNRM-CERFACS-CNRM-CM5/rcp45/r1i1p1/ALARO-0/v1/day/pr/v20170207/pr_EUR-11_CNRM-CERFACS-CNRM-CM5_rcp45_r1i1p1_RMIB-UGent-ALARO-0_v1_day_20760101-20801231.nc ofile4.nc
