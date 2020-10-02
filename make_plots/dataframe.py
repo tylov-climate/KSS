@@ -13,7 +13,7 @@ import seaborn as sns
 import pandas as pd
 import math
 
-original_models = [
+last_study_models = [
     'ICHEC-EC-EARTH_HIRHAM5_r3i1p1',
     'ICHEC-EC-EARTH_RCA4_r12i1p1',
     'ICHEC-EC-EARTH_CCLM4-8-17_r12i1p1',
@@ -39,8 +39,12 @@ def load_mask():
 
 def average_data(inroot, output, version=1):
     seasons, exps, stat_ops, variables, models = [], [], [], [], []
-    seasons_r, exps_r, stat_ops_r, variables_r, models_r = {}, {}, {}, {}, {}
-    dirpattern = '/*/*/*' if version == 1 else '/*/*'
+    if version == 1:
+        dirpattern = '/*/*/*'
+        seasons = ['full', 's1', 's2', 's3', 's4']
+    else:
+        dirpattern = '/*/*'
+        seasons = ['FULL', 'MAM', 'JJA', 'SON', 'DJF']
 
     for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
@@ -51,8 +55,6 @@ def average_data(inroot, output, version=1):
                 domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, stat_op, season, period = f[:-3].split('_')
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
-            if season not in seasons:
-                seasons.append(season)
             if exp_name not in exps:
                 exps.append(exp_name)
             if stat_op not in stat_ops:
@@ -62,7 +64,6 @@ def average_data(inroot, output, version=1):
             if model_name not in models:
                 models.append(model_name)
 
-    seasons = sorted(seasons)
     exps = sorted(exps)
     stat_ops = sorted(stat_ops)
     variables = sorted(variables)
@@ -119,7 +120,7 @@ def create_dataframe(stats, dims, file):
 
     m = {'Season': [], 'Experiment': [], 'Period': [],
          'Institute': [], 'Model': [], 'Model Id': [], 'Ensemble': [], 'RCM Ver': [],
-         'TAS celsius': [], 'PR mm.30.days': [],
+         'TAS celsius': [], 'PR mm.year': [],
          'TAS': [], 'PR': [],
          'TAS variance': [], 'PR variance': []}
     for season in dims['seasons']:
@@ -144,24 +145,24 @@ def create_dataframe(stats, dims, file):
                     m['Ensemble'].append(model[2])
                     m['RCM Ver'].append(model[4])
                     m['TAS celsius'].append(tas_mean - 273.15)
-                    m['PR mm.30.days'].append(pr_mean * (30*24*60*60))
+                    m['PR mm.year'].append(pr_mean * (365.25*24*60*60))
                     m['TAS'].append(tas_mean)
                     m['PR'].append(pr_mean)
                     m['TAS variance'].append(tas_variance)
                     m['PR variance'].append(pr_variance)
 
     df = pd.DataFrame(m)
-    # Merge models to match original_models[] signature.
+    # Merge models to match last_study_models[] signature.
     models = df[df.columns[4:7]].apply(
         lambda x: '_'.join(x.dropna().astype(str)),
         axis=1
     )
-    is_original = models == original_models[0]
-    for i in range(1, len(original_models)):
-        is_original |= models == original_models[i]
-    df['Original Model'] = is_original
+    last_study = models == last_study_models[0]
+    for i in range(1, len(last_study_models)):
+        last_study |= models == last_study_models[i]
+    df['Last Study'] = last_study
     df.to_pickle(file + '.pkl')
-    df.to_csv(file + '.csv')
+    df.to_csv(file + '.csv', sep=';')
     return df
 
 
@@ -169,22 +170,23 @@ def create_dataframe(stats, dims, file):
 
 
 if __name__ == '__main__':
-    version = 2
-    #inroot='/tos-project4/NS9076K/data/cordex-norway/stats_v%d' % version
-    inroot='C:/Dev/DATA/stats_v%d' % version
-    file = 'kss_analysis_v%d' % version
+    for version in (1, 2):
+        if os.name == 'posix':
+            inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v%d' % version
+        else: # 'nt' -> windows
+            inroot = 'D:/Data/EUR-11_norway/stats_v%d' % version
+        file = 'kss_analysis_v%d' % version
 
-    if os.path.exists(file + '.pkl'):
-        df = pd.read_pickle(file + '.pkl')
-    else:
-        stats, dims = average_data(inroot, file, version)
-        print(stats.shape)
-        print(stats.shape)
-        print(dims['seasons'])
-        print(dims['exps'])
-        print(dims['stat_ops'])
-        print(dims['variables'])
-        df = create_dataframe(stats, dims, file)
-
-    print(df)
+        if os.path.exists(file + '.pkl'):
+            df = pd.read_pickle(file + '.pkl')
+        else:
+            stats, dims = average_data(inroot, file, version)
+            print(stats.shape)
+            print(stats.shape)
+            print(dims['seasons'])
+            print(dims['exps'])
+            print(dims['stat_ops'])
+            print(dims['variables'])
+            df = create_dataframe(stats, dims, file)
+        print(df)
 
