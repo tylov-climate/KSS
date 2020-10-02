@@ -77,5 +77,5 @@ if __name__ == '__main__':
     df = pd.read_csv('kss_analysis.csv', index_col=0)
     #df = pd.read_pickle('kss_analysis.pkl')
     #print(df.head())
-    add_last_study_column(df)
+    #add_last_study_column(df)
     plot2(df)

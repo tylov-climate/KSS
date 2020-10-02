@@ -70,7 +70,7 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
                         ret = -1
                         if ret != 0:
                             ret = os.system('cdo remapbil,griddes.txt %s %s' % (infile, 'tmp.nc'))
-                            
+
                         if ret == 0:
                             if not os.path.isdir(outdir):
                                 os.makedirs(outdir)

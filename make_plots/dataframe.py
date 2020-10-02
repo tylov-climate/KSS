@@ -84,7 +84,6 @@ def average_data(inroot, output, version=1):
     }
     stats = np.empty(shape=(len(seasons), len(exps), len(stat_ops), len(variables), len(models)), dtype=float)
     stats.fill(np.nan)
-    print(stats.shape)
 
     d = dims['inv']
     n = 0
@@ -170,7 +169,7 @@ def create_dataframe(stats, dims, file):
 
 
 if __name__ == '__main__':
-    for version in (1, 2):
+    for version in (2,):
         if os.name == 'posix':
             inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v%d' % version
         else: # 'nt' -> windows
@@ -181,7 +180,6 @@ if __name__ == '__main__':
             df = pd.read_pickle(file + '.pkl')
         else:
             stats, dims = average_data(inroot, file, version)
-            print(stats.shape)
             print(stats.shape)
             print(dims['seasons'])
             print(dims['exps'])
