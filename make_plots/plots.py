@@ -79,4 +79,3 @@ if __name__ == '__main__':
     #print(df.head())
     add_last_study_column(df)
     plot2(df)
-    
