@@ -103,11 +103,13 @@ def average_data(inroot, output, version=1):
                 for ncvname, ncvar in src.variables.items():
                     if ncvname == var_id:
                         data = ncvar[:]
-                        value_unmasked = np.mean(data)
+                        #value_unmasked = np.mean(data)
                         data = np.ma.masked_array(data, mask=mask_img) # Mask is with Norway shape file.
                         value = np.mean(data)
+                        if var_id == 'tas' and value < 200.0:
+                            value += 273.15
                         stats[d[0][season]][d[1][exp_name]][d[2][stat_op]][d[3][var_id]][d[4][model_name]] = value
-                        print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value, value_unmasked)
+                        print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value) # , value_unmasked)
                         n += 1
     return stats, dims
 
