@@ -122,8 +122,13 @@ def create_dataframe(stats, dims, file):
     m = {'Season': [], 'Experiment': [], 'Period': [],
          'Institute': [], 'Model': [], 'Model Id': [], 'Ensemble': [], 'RCM Ver': [],
          'TAS celsius': [], 'PR mm.year': [],
-         'TAS': [], 'PR': [],
-         'TAS variance': [], 'PR variance': []}
+         #'TAS': [], 'PR': [],
+         #'TAS variance': [], 'PR variance': [],
+         'TAS diff': [], 'PR diff': [],
+         }
+
+    pr_fac = 365.25 * 24 * 60 * 60
+
     for season in dims['seasons']:
         season_disp = season_ren[season]
         for exp_name in dims['exps']:
@@ -131,10 +136,13 @@ def create_dataframe(stats, dims, file):
             for model_name in dims['models']: # institute_id, model_id, ensemble_id, source_id, rcm_version
                 model = model_name.split('_')
                 source = model[1].split('-')
-                tas_mean = stats[d[0][season]][d[1][exp_name]][d[2]['timmean']][d[3]['tas']][d[4][model_name]]
-                pr_mean = stats[d[0][season]][d[1][exp_name]][d[2]['timmean']][d[3]['pr']][d[4][model_name]]
-                tas_variance = stats[d[0][season]][d[1][exp_name]][d[2]['timvar']][d[3]['tas']][d[4][model_name]]
-                pr_variance = stats[d[0][season]][d[1][exp_name]][d[2]['timvar']][d[3]['pr']][d[4][model_name]]
+                s = d[0][season]
+                x = d[1][exp_name]
+                n = d[4][model_name]
+                tas_mean = stats[s][x][d[2]['timmean']][d[3]['tas']][n]
+                pr_mean = stats[s][x][d[2]['timmean']][d[3]['pr']][n]
+                #tas_variance = stats[s][x][d[2]['timvar']][d[3]['tas']][n]
+                #pr_variance = stats[s][x][d[2]['timvar']][d[3]['pr']][n]
                 if not (math.isnan(tas_mean) and math.isnan(pr_mean)):
                     #print(season_disp, exp_disp[0], exp_disp[1], model_name, tas_mean, pr_mean)
                     m['Season'].append(season_disp)
@@ -146,11 +154,18 @@ def create_dataframe(stats, dims, file):
                     m['Ensemble'].append(model[2])
                     m['RCM Ver'].append(model[4])
                     m['TAS celsius'].append(tas_mean - 273.15)
-                    m['PR mm.year'].append(pr_mean * (365.25*24*60*60))
-                    m['TAS'].append(tas_mean)
-                    m['PR'].append(pr_mean)
-                    m['TAS variance'].append(tas_variance)
-                    m['PR variance'].append(pr_variance)
+                    m['PR mm.year'].append(pr_mean * pr_fac)
+                    #m['TAS'].append(tas_mean)
+                    #m['PR'].append(pr_mean)
+                    #m['TAS variance'].append(tas_variance)
+                    #m['PR variance'].append(pr_variance)
+
+                    if x > 0:
+                        m['TAS diff'].append(tas_mean - stats[s][0][d[2]['timmean']][d[3]['tas']][n])
+                        m['PR diff'].append(pr_mean*pr_fac - stats[s][0][d[2]['timmean']][d[3]['pr']][n]*pr_fac)
+                    else:
+                        m['TAS diff'].append(0.0)
+                        m['PR diff'].append(0.0)
 
     df = pd.DataFrame(m)
     # Merge models to match last_study_models[] signature.
@@ -161,7 +176,7 @@ def create_dataframe(stats, dims, file):
     last_study = models == last_study_models[0]
     for i in range(1, len(last_study_models)):
         last_study |= models == last_study_models[i]
-    df['Last Study'] = last_study
+    df['Previous Study'] = last_study
     df.to_pickle(file + '.pkl')
     df.to_csv(file + '.csv', sep=';')
     return df
@@ -175,10 +190,11 @@ if __name__ == '__main__':
         if os.name == 'posix':
             inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v%d' % version
         else: # 'nt' -> windows
-            inroot = 'D:/Data/EUR-11_norway/stats_v%d' % version
+            #inroot = 'D:/Data/EUR-11_norway/stats_v%d' % version
+            inroot = 'C:/Dev/DATA/stats_v%d' % version
         file = 'kss_analysis_v%d' % version
 
-        if os.path.exists(file + '.pkl'):
+        if False: # os.path.exists(file + '.pkl'):
             df = pd.read_pickle(file + '.pkl')
         else:
             stats, dims = average_data(inroot, file, version)
