@@ -3,11 +3,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-markers = ('o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X')
+markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
 
 def facetgrid_all(df):
     #df[df.Season == 'MAM']
-    sns.set_style('whitegrid')
+    #sns.set_style('whitegrid')
+    sns.set(style='ticks')
     g = sns.FacetGrid(df, col='Season', row='Period', row_order=('2071-2100', '2031-2060', '1951-2000'),
                                         hue='Experiment', hue_order=('historical', 'rcp45'), palette='bright', height=3.6, aspect=1.0)
     g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year') # , markers=markers, style='Experiment')
@@ -25,8 +26,8 @@ def scatterplot_func(x, y, style, **kwargs):
     c = kwargs.get('color', 'k')
     plt.scatter(x=xm, y=ym, color=c, marker='D', s=60)
     ax = sns.scatterplot(x, y, s=25, marker='o', **kwargs)
-    ax.axhline(ym, alpha=0.05, color='black')
-    ax.axvline(xm, alpha=0.05, color='black')
+    ax.axhline(ym, alpha=0.1, color='black')
+    ax.axvline(xm, alpha=0.1, color='black')
     x = x.to_numpy()
     y = y.to_numpy()
     if c[2] == 1.0:
@@ -34,19 +35,23 @@ def scatterplot_func(x, y, style, **kwargs):
     else:
         list = np.unique(np.where(y == max(y))) # Old models: print high precipitation only
     for i in list:
-        ax.text(x[i], y[i], style.iloc[i], size='small') # , horizontalalignment='center', size='medium', color='black', weight='semibold')
+        p = style.iloc[i].split('_', 2)
+        s = '-'.join(p[0].split('-')[:2] + p[1:])
+        ax.text(x[i], y[i], s, size='small') # , horizontalalignment='center', size='medium', color='black', weight='semibold')
 
 
 def facetgrid_differences(df, season='ANN'):
     markers = ['v', 'o']
+    #sns.set_style('whitegrid')
+    sns.set(style='ticks')
     df = df[df.Season == season]
     df = df[df.Experiment != 'historical']
-    sns.set(style='ticks')
-    g = sns.FacetGrid(df, col='Experiment', row='Period', row_order=('2071-2100', '2031-2060'), hue='Previous Study', palette='bright', height=5, aspect=1.2, 
-                          legend_out=True, despine=False, sharex=False, sharey=False) # 
+    g = sns.FacetGrid(df, col='Experiment', row='Period', row_order=('2071-2100', '2031-2060'),
+                          hue='Previous Study', palette='bright', height=5, aspect=1.0,
+                          legend_out=True, despine=False, sharex=False, sharey=False) #
     g.fig.suptitle('Nedbør- og temperatur-endring: %s' % season, fontsize=16, y=0.98)
-    g.fig.subplots_adjust(top=0.90, wspace=0)
     g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
+    g.fig.subplots_adjust(top=0.90, wspace=0.2)
     g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
     g.add_legend()
 
@@ -88,7 +93,7 @@ if __name__ == '__main__':
     #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
     #sns.set(style='ticks')
     facetgrid_all(df)
-    facetgrid_differences(df)
+    #facetgrid_differences(df)
     '''
     facetgrid_differences(df, 'MAM')
     facetgrid_differences(df, 'JJA')
