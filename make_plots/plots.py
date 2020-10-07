@@ -7,6 +7,7 @@ markers = ('o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P',
 
 def facetgrid_all(df):
     #df[df.Season == 'MAM']
+    sns.set_style('whitegrid')
     g = sns.FacetGrid(df, col='Season', row='Period', row_order=('2071-2100', '2031-2060', '1951-2000'),
                                         hue='Experiment', hue_order=('historical', 'rcp45'), palette='bright', height=3.6, aspect=1.0)
     g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year') # , markers=markers, style='Experiment')
@@ -36,20 +37,18 @@ def scatterplot_func(x, y, style, **kwargs):
         ax.text(x[i], y[i], style.iloc[i], size='small') # , horizontalalignment='center', size='medium', color='black', weight='semibold')
 
 
-
 def facetgrid_differences(df, season='ANN'):
     markers = ['v', 'o']
     df = df[df.Season == season]
     df = df[df.Experiment != 'historical']
+    sns.set(style='ticks')
     g = sns.FacetGrid(df, col='Experiment', row='Period', row_order=('2071-2100', '2031-2060'), hue='Previous Study', palette='bright', height=5, aspect=1.2, 
                           legend_out=True, despine=False, sharex=False, sharey=False) # 
     g.fig.suptitle('Nedbør- og temperatur-endring: %s' % season, fontsize=16, y=0.98)
     g.fig.subplots_adjust(top=0.90, wspace=0)
     g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
     g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
-    #g.set_titles(col_template="{col_name} patrons", row_template="{row_name}")
     g.add_legend()
-    #plt.show()
 
 
 def plot2(df):
@@ -58,11 +57,8 @@ def plot2(df):
     g.map_dataframe(sns.scatterplot, x='PR mm.year', y='TAS celsius', style='Institute', markers=markers, legend='full')
     g.set_axis_labels('Precipitation mm.', 'Surface temp. C.')
     g.add_legend()
-    #g.set_titles(col_template="{col_name} patrons", row_template="{row_name}")
     g.set(xlim=(2, 3.8), ylim=(-3, 9)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
-    #g.set(xlim=(585, 1608), ylim=(8, 19)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
     #g.savefig('facet_plot.png')
-    #plt.show()
 
 
 def test():
@@ -74,7 +70,6 @@ def test():
     #g = sns.factorplot(x='time', y='pulse', hue='kind', data=exercise)
     df2 = None
     df['TAS diff'] = df1['TAS celsius'] - df1['A'].map(df2.set_index('A')['B'])
-    plt.show()
 
 
 if __name__ == '__main__':
@@ -89,11 +84,11 @@ if __name__ == '__main__':
     )
     df['Full Model'] = models
 
-    sns.set_style('whitegrid')
+    #sns.set_style('whitegrid')
     #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
     #sns.set(style='ticks')
     facetgrid_all(df)
-    #facetgrid_differences(df)
+    facetgrid_differences(df)
     '''
     facetgrid_differences(df, 'MAM')
     facetgrid_differences(df, 'JJA')
