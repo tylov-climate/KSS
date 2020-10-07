@@ -3,62 +3,58 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-df_kss = None
+markers = ('o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X')
 
-def plot1_all_seasons(df):
-    markers = ['o', 'v', 'd', '^', 'D', 'v', 'o', 'd', 'v', 'v', 'v', '^', 'v']
-    df_kss = df
-    #df[df.Season == 'spring']
-    g = sns.FacetGrid(df_kss, col='Season', row='Period', hue='Experiment', palette='bright') # height=6, aspect=.8
-    g.map_dataframe(sns.scatterplot, x='PR mm.year', y='TAS celsius', markers=markers, style='Previous Study')
-    g.set_axis_labels('Precipitation mm.', 'Surface temp. C.')
+def facetgrid_all(df):
+    #df[df.Season == 'MAM']
+    g = sns.FacetGrid(df, col='Season', row='Period', row_order=('2071-2100', '2031-2060', '1951-2000'),
+                                        hue='Experiment', hue_order=('historical', 'rcp45'), palette='bright', height=3.6, aspect=1.0)
+    g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year') # , markers=markers, style='Experiment')
+    g.fig.subplots_adjust(top=0.92, left=0.04, bottom=0.07)
+    g.fig.suptitle('Nedbør og temperatur for fastlands-norge (absoluttverdier)', fontsize=16, y=0.98)
+    g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     g.add_legend()
-    #g.set_titles(col_template="{col_name} patrons", row_template="{row_name}")
-    g.set(xlim=(570, 1570), ylim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
-    #g.set(xlim=(585, 1608), ylim=(8, 19)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
+    g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
     #g.savefig('facet_plot.png')
-    plt.show()
 
 
-def period_diff_plt(x, y, style, **kwargs):
+def scatterplot_func(x, y, style, **kwargs):
     xm, ym = np.mean(x), np.mean(y)
     # Average, big diamond:
     c = kwargs.get('color', 'k')
     plt.scatter(x=xm, y=ym, color=c, marker='D', s=60)
-    ax = sns.scatterplot(x, y, s=20, **kwargs)
-    #ax.axhline(ym, alpha=0.5, color='grey')
-    #ax.axvline(xm, alpha=0.5, color='grey')
-    #index = kwargs.get('index', 'k')
-    #print(style.iloc[1], type(style.iloc[1]))
+    ax = sns.scatterplot(x, y, s=25, marker='o', **kwargs)
+    ax.axhline(ym, alpha=0.05, color='black')
+    ax.axvline(xm, alpha=0.05, color='black')
     x = x.to_numpy()
     y = y.to_numpy()
     if c[2] == 1.0:
-        list = np.unique([np.where(x == max(x)), np.where(y == max(y)), np.where(x == min(x)), np.where(y == min(y))])
+        list = np.unique((np.where(x == max(x)), np.where(y == max(y)), np.where(x == min(x)), np.where(y == min(y))))
     else:
-        list = []
+        list = np.unique(np.where(y == max(y))) # Old models: print high precipitation only
     for i in list:
         ax.text(x[i], y[i], style.iloc[i], size='small') # , horizontalalignment='center', size='medium', color='black', weight='semibold')
 
 
-def plot1_diff(df, season='annual'):
+
+def facetgrid_differences(df, season='ANN'):
     markers = ['v', 'o']
-    global df_kss
     df = df[df.Season == season]
     df = df[df.Experiment != 'historical']
-    df_kss = df
-    g = sns.FacetGrid(df_kss, col='Experiment', row='Period', hue='Previous Study', palette='bright') # height=6, aspect=.8
-    g.fig.suptitle('Precipitation vs Temperature - %s' % season, fontsize=16, y=1.0)
-    g.map(period_diff_plt, 'PR diff', 'TAS diff', 'Full Model') # , markers=markers, style='Previous Study')
-    g.set_axis_labels('Precipitation diff. mm.', 'Surface Temp. diff. C.')
+    g = sns.FacetGrid(df, col='Experiment', row='Period', row_order=('2071-2100', '2031-2060'), hue='Previous Study', palette='bright', height=5, aspect=1.2, 
+                          legend_out=True, despine=False, sharex=False, sharey=False) # 
+    g.fig.suptitle('Nedbør- og temperatur-endring: %s' % season, fontsize=16, y=0.98)
+    g.fig.subplots_adjust(top=0.90, wspace=0)
+    g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
+    g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
     #g.set_titles(col_template="{col_name} patrons", row_template="{row_name}")
     g.add_legend()
     #plt.show()
 
 
 def plot2(df):
-    markers = ('o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X')
-    df_kss = df[df.Season == 'annual']
-    g = sns.FacetGrid(df_kss, row='Previous Study', col='Period', hue='Experiment', palette='bright') # height=6, aspect=.8
+    df = df[df.Season == 'ANN']
+    g = sns.FacetGrid(df, row='Previous Study', col='Period', hue='Experiment', palette='bright') # height=6, aspect=.8
     g.map_dataframe(sns.scatterplot, x='PR mm.year', y='TAS celsius', style='Institute', markers=markers, legend='full')
     g.set_axis_labels('Precipitation mm.', 'Surface temp. C.')
     g.add_legend()
@@ -83,22 +79,25 @@ def test():
 
 if __name__ == '__main__':
     # Read dataset
-    #df = pd.read_csv('kss_analysis_v2.csv', index_col=0, sep=';')
-    df = pd.read_pickle('kss_analysis_v2.pkl')
+    df = pd.read_csv('kss_analysis_v2.csv', index_col=0, sep=';')
+    #df = pd.read_pickle('kss_analysis_v2.pkl')
+
+    # Add full model column:
     models = df[df.columns[4:7]].apply(
         lambda x: '_'.join(x.dropna().astype(str)),
         axis=1
     )
     df['Full Model'] = models
 
-    #sns.set_style('whitegrid')
-    sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
-    #plot1_all_seasons(df)
-    plot1_diff(df)
+    sns.set_style('whitegrid')
+    #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
+    #sns.set(style='ticks')
+    facetgrid_all(df)
+    #facetgrid_differences(df)
     '''
-    plot1_diff(df, 'spring')
-    plot1_diff(df, 'summer')
-    plot1_diff(df, 'autumn')
-    plot1_diff(df, 'winter')
+    facetgrid_differences(df, 'MAM')
+    facetgrid_differences(df, 'JJA')
+    facetgrid_differences(df, 'SON')
+    facetgrid_differences(df, 'DJF')
     '''
     plt.show()

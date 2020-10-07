@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 #
-# Coded by Tyge Lovset, 2020
-# Ralf Dösher: Nordic, 3 km, Nordic 12km, Alps 3km. Convectional Permitting
+# Coded by Tyge Lovset, Sep/Oct 2020
 
 import os
 import sys
@@ -14,16 +13,29 @@ eur_rpole = ((-28.375, -23.375), (18.155, 21.835)) # lon-lat
 nor_rpole = ((-6.595, 7.535), (4.735, 20.625))     # lon-lat
 nor_lonlat = ((5.684921607269574, 57.73557430824275), (31.682012795900178, 70.93623338069854))
 
-# Labbert conformal: 453 x 453 grid
+
+# Around 95% of models are in rotated_pole projection, rlat=412 x rlon=424 grid
+#   rotated_pole:grid_north_pole_latitude = 39.25 ;
+#   rotated_pole:grid_north_pole_longitude = -162. ;
+# and cropped to Norway to 124 x 108.
+# The rest of the models are in different projections and grid sizes, so we create
+# a griddes.txt file using 'cdo griddes cropped_rotated_pole.nc > griddes.txt'
+# and then 'cdo remapbil,griddes.txt in.nc out.nc' to convert and crop when
+# input is not rotated_pole 412 x 424 grid.
+
+# The following models have different grid types:
+# (Note that some values in ALADIN53 models have TAS in C, although units=K. Is handled in analysis).
+
+# Lambert conformal: 453 x 453 grid:
 # CNRM/CNRM-CERFACS-CNRM-CM5/*/r1i1p1/ALADIN63/v2
 # CNRM/CNRM-CERFACS-CNRM-CM5/*/r1i1p1/ALADIN53/v1
 # CNRM/MPI-M-MPI-ESM-LR/(hist,rcp85)/r1i1p1/ALADIN63/v2
 # CNRM/MOHC-HadGEM2-ES/(hist,rcp85)/r1i1p1/ALADIN63/v1
 
-# Lambert conformal: 485 x 485 grid
+# Lambert conformal: 485 x 485 grid:
 # RMIB-UGent/CNRM-CERFACS-CNRM-CM5/*/r1i1p1/ALARO-0
 
-# Lambert conformal: 527 x 527: crs:proj4_params = "+proj=lcc +lat_1=30.00 +lat_2=65.00 +lat_0=48.00 +lon_0=9.75 +x_0=-6000. +y_0=-6000. +ellps=sphere +a=6371229. +b=6371229. +units=m +no_defs" ;
+# Lambert conformal: 527 x 527  grid:
 # ICTP/MPI-M-MPI-ESM-LR/(hist,rcp26,rcp85)/r1i1p1/RegCM4-6/v1
 # ICTP/MOHC-HadGEM2-ES/(hist,rcp26,rcp85)/r1i1p1/RegCM4-6/v1
 
@@ -45,7 +57,7 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
     q = proj.lonlat_to_rotpole(nor_lonlat[1])
     print('Rotated pole lon:',(p[0],q[0]), 'lat:',(p[1],q[1]))
 
-    # Rather use absolute pixels p=lower left, q=upper right
+    # Rather use fixed pixels p=lower left, q=upper right
     p = (196, 279)
     q = (303, 402)
 
@@ -61,14 +73,14 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
                     outdir = os.path.join(outroot, subpath)
                     outfile = os.path.join(outdir, f)
                     if not os.path.isfile(outfile):
-                        # Crop bounding box of Norway
-                        #ret = os.system('ncks -d rlon,%f,%f -d rlat,%f,%f %s -O %s'
+                        # Crop bounding box of Norway with computed bounding box
+                        #ret = os.system('ncks -d rlon,%f,%f -d rlat,%f,%f %s -O %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
                         print('Path:', subpath, file=sys.stderr)
                         print('     ', f, file=sys.stderr)
-                        #ret = os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s'
-                        #                 % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
-                        ret = -1
+                        # Crop bounding box of Norway with accurate fixed pixels (integer args are interpreted as pixels, not lon,lat values!)
+                        ret = os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
                         if ret != 0:
+                            # Probably not "standard" rotated_pole 412x424 grid, so try with combined bi-linear remapping and crop instead:
                             ret = os.system('cdo remapbil,griddes.txt %s %s' % (infile, 'tmp.nc'))
 
                         if ret == 0:

@@ -3,6 +3,7 @@
 # Developed by Tyge Lovset, September 2020
 
 import os
+import platform
 import glob
 import netCDF4 as nc4
 import numpy as np
@@ -37,7 +38,7 @@ def load_mask():
 
 # Save load mean of the statistical data over periods and seasons. (avg, variance, ...)
 
-def average_data(inroot, output, version=1):
+def average_data(inroot, output, version=2):
     seasons, exps, stat_ops, variables, models = [], [], [], [], []
     if version == 1:
         dirpattern = '/*/*/*'
@@ -116,8 +117,8 @@ def average_data(inroot, output, version=1):
 
 def create_dataframe(stats, dims, file):
     d = dims['inv']
-    season_ren = {'full': 'annual', 's1': 'spring', 's2': 'summer', 's3': 'autumn', 's4': 'winter',
-                  'FULL': 'annual', 'MAM': 'spring', 'JJA': 'summer', 'SON': 'autumn', 'DJF': 'winter'}
+    season_ren = {'full': 'ANN', 's1': 'MAM', 's2': 'JJA', 's3': 'SON', 's4': 'DJF',
+                  'FULL': 'ANN', 'MAM': 'MAM', 'JJA': 'JJA', 'SON': 'SON', 'DJF': 'DJF'}
 
     m = {'Season': [], 'Experiment': [], 'Period': [],
          'Institute': [], 'Model': [], 'Model Id': [], 'Ensemble': [], 'RCM Ver': [],
@@ -138,9 +139,10 @@ def create_dataframe(stats, dims, file):
                 source = model[1].split('-')
                 s = d[0][season]
                 x = d[1][exp_name]
+                a = d[2]['timmean']
                 n = d[4][model_name]
-                tas_mean = stats[s][x][d[2]['timmean']][d[3]['tas']][n]
-                pr_mean = stats[s][x][d[2]['timmean']][d[3]['pr']][n]
+                tas_mean = stats[s][x][a][d[3]['tas']][n]
+                pr_mean = stats[s][x][a][d[3]['pr']][n]
                 #tas_variance = stats[s][x][d[2]['timvar']][d[3]['tas']][n]
                 #pr_variance = stats[s][x][d[2]['timvar']][d[3]['pr']][n]
                 if not (math.isnan(tas_mean) and math.isnan(pr_mean)):
@@ -161,8 +163,8 @@ def create_dataframe(stats, dims, file):
                     #m['PR variance'].append(pr_variance)
 
                     if x > 0:
-                        m['TAS diff'].append(tas_mean - stats[s][0][d[2]['timmean']][d[3]['tas']][n])
-                        m['PR diff'].append(pr_mean*pr_fac - stats[s][0][d[2]['timmean']][d[3]['pr']][n]*pr_fac)
+                        m['TAS diff'].append(tas_mean - stats[s][0][a][d[3]['tas']][n])
+                        m['PR diff'].append(100 * (pr_mean - stats[s][0][a][d[3]['pr']][n]) / stats[s][0][a][d[3]['pr']][n])
                     else:
                         m['TAS diff'].append(0.0)
                         m['PR diff'].append(0.0)
@@ -177,7 +179,7 @@ def create_dataframe(stats, dims, file):
     for i in range(1, len(last_study_models)):
         last_study |= models == last_study_models[i]
     df['Previous Study'] = last_study
-    df.to_pickle(file + '.pkl')
+    #df.to_pickle(file + '.pkl')
     df.to_csv(file + '.csv', sep=';')
     return df
 
@@ -186,23 +188,26 @@ def create_dataframe(stats, dims, file):
 
 
 if __name__ == '__main__':
-    for version in (2,):
-        if os.name == 'posix':
-            inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v%d' % version
-        else: # 'nt' -> windows
-            #inroot = 'D:/Data/EUR-11_norway/stats_v%d' % version
-            inroot = 'C:/Dev/DATA/stats_v%d' % version
-        file = 'kss_analysis_v%d' % version
+    uname = platform.uname()[1]
+    version = 2
+    if '-tos' in uname: # NIRD or similar
+        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v%d' % version
+    elif uname == 'CMR-PC-158': # Work
+        inroot = 'D:/Data/EUR-11_norway/stats_v%d' % version
+    else: # home
+        inroot = 'C:/Dev/DATA/stats_v%d' % version
+    file = 'kss_analysis_v%d' % version
 
-        if False: # os.path.exists(file + '.pkl'):
-            df = pd.read_pickle(file + '.pkl')
-        else:
-            stats, dims = average_data(inroot, file, version)
-            print(stats.shape)
-            print(dims['seasons'])
-            print(dims['exps'])
-            print(dims['stat_ops'])
-            print(dims['variables'])
-            df = create_dataframe(stats, dims, file)
-        print(df)
+    if False: # os.path.exists(file + '.pkl'):
+        #df = pd.read_pickle(file + '.pkl')
+        df = pd.read_csv(file + '.csv', sep=';')
+    else:
+        stats, dims = average_data(inroot, file, version)
+        print(stats.shape)
+        print(dims['seasons'])
+        print(dims['exps'])
+        print(dims['stat_ops'])
+        print(dims['variables'])
+        df = create_dataframe(stats, dims, file)
+    print(df)
 
