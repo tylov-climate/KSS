@@ -6,12 +6,13 @@ import numpy as np
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
 
 def facetgrid_all(df):
-    #df[df.Season == 'MAM']
-    #sns.set_style('whitegrid')
+    #df = df[df.Season == 'ANN']
     sns.set(style='ticks')
-    g = sns.FacetGrid(df, col='Season', row='Period', row_order=('2071-2100', '2031-2060', '1951-2000'),
-                                        hue='Experiment', hue_order=('historical', 'rcp45'), palette='bright', height=3.6, aspect=1.0)
+    g = sns.FacetGrid(df, col='Season', # col_order= ('ANN', 'JJA', 'SON'),
+                          row='Period', row_order=('2071-2100', '2031-2060', '1951-2000'),
+                          hue='Experiment', hue_order=('historical', 'rcp45'), palette='bright', height=3.6, aspect=1.0)
     g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year') # , markers=markers, style='Experiment')
+    #g.map(scatterplot_func, 'TAS celsius', 'PR mm.year', 'Full Model') # , markers=markers, style='Previous Study')
     g.fig.subplots_adjust(top=0.92, left=0.04, bottom=0.07)
     g.fig.suptitle('Nedbør og temperatur for fastlands-norge (absoluttverdier)', fontsize=16, y=0.98)
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
