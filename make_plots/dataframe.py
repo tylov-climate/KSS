@@ -38,22 +38,30 @@ def load_mask():
 
 # Save load mean of the statistical data over periods and seasons. (avg, variance, ...)
 
-def average_data(inroot, output, version=2):
+def average_data(inroot, output, version):
     seasons, exps, stat_ops, variables, models = [], [], [], [], []
     if version == 1:
         dirpattern = '/*/*/*'
-        seasons = ['full', 's1', 's2', 's3', 's4']
-    else:
+        seasons = ('full', 's1', 's2', 's3', 's4')
+    elif version == 2:
         dirpattern = '/*/*'
-        seasons = ['FULL', 'MAM', 'JJA', 'SON', 'DJF']
+        seasons = ('FULL', 'MAM', 'JJA', 'SON', 'DJF')
+    elif version == 3:
+        dirpattern = '/*'
+        seasons = ('FULL', 'MAM', 'JJA', 'SON', 'DJF')
 
     for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
             if version == 1:
                 domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period, season, stat_op = f[:-3].split('_')
-            else:
+            elif version == 2:
                 domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, stat_op, season, period = f[:-3].split('_')
+            elif version == 3:
+                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period = f[:-3].split('_')
+                season = 'all'
+                stat_op = 'timmean'
+
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
             if exp_name not in exps:
@@ -71,7 +79,7 @@ def average_data(inroot, output, version=2):
     models = sorted(models)
 
     dims = {
-        'names': ['seasons', 'exps', 'stat_ops', 'variables', 'models'],
+        'names': ('seasons', 'exps', 'stat_ops', 'variables', 'models'),
         'seasons': seasons,
         'exps': exps,
         'stat_ops': stat_ops,
@@ -94,24 +102,37 @@ def average_data(inroot, output, version=2):
             f = os.path.basename(path)
             if version == 1:
                 domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period, season, stat_op = f[:-3].split('_')
-            else:
+            elif version == 2:
                 domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, stat_op, season, period = f[:-3].split('_')
+            elif version == 3:
+                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period = f[:-3].split('_')
+                season = 'all'
+                stat_op = 'timmean'
 
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
 
+            season_all = ('DJF', 'MAM', 'JJA', 'SON', 'FULL') if version == 3 else (season,)
+
             with nc4.Dataset(path) as src:
                 for ncvname, ncvar in src.variables.items():
                     if ncvname == var_id:
-                        data = ncvar[:]
-                        #value_unmasked = np.mean(data)
-                        data = np.ma.masked_array(data, mask=mask_img) # Mask is with Norway shape file.
-                        value = np.mean(data)
-                        if var_id == 'tas' and value < 200.0:
-                            value += 273.15
-                        stats[d[0][season]][d[1][exp_name]][d[2][stat_op]][d[3][var_id]][d[4][model_name]] = value
-                        print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value) # , value_unmasked)
-                        n += 1
+                        data_all = ncvar[:]
+                        season_n = 0
+                        for season in season_all:
+                            if version == 3:
+                                data = np.swapaxes(data_all, 0, 1).mean(axis=1) if season == 'FULL' else data_all[season_n]
+                                season_n += 1
+                            else:
+                                data = data_all
+                            #value_unmasked = np.mean(data)
+                            data = np.ma.masked_array(data, mask=mask_img) # Mask is with Norway shape file.
+                            value = np.mean(data)
+                            if var_id == 'tas' and value < 200.0:
+                                value += 273.15
+                            stats[d[0][season]][d[1][exp_name]][d[2][stat_op]][d[3][var_id]][d[4][model_name]] = value
+                            print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value) # , value_unmasked)
+                            n += 1
     return stats, dims
 
 
@@ -189,7 +210,7 @@ def create_dataframe(stats, dims, file):
 
 if __name__ == '__main__':
     uname = platform.uname()[1]
-    version = 2
+    version = 3
     if '-tos' in uname: # NIRD or similar
         inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v%d' % version
     elif uname == 'CMR-PC-158': # Work
