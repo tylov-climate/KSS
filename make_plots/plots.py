@@ -6,18 +6,19 @@ import numpy as np
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
 
 def facetgrid_all(df):
-    #df = df[df.Season == 'ANN']
+    df = df[df.Season != 'ANN']
     sns.set(style='ticks')
     g = sns.FacetGrid(df, col='Season', # col_order= ('ANN', 'JJA', 'SON'),
                           row='Period', row_order=('2071-2100', '2031-2060', '1951-2000'),
-                          hue='Experiment', hue_order=('historical', 'rcp45'), palette='bright', height=3.6, aspect=1.0)
-    g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year') # , markers=markers, style='Experiment')
+                          hue='Experiment', hue_order=('historical', 'rcp45'), palette='bright', height=3.3, aspect=1.35)
+    #g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year') # , markers=markers, style='Experiment')
     #g.map(scatterplot_func, 'TAS celsius', 'PR mm.year', 'Full Model') # , markers=markers, style='Previous Study')
+    g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
     g.fig.subplots_adjust(top=0.92, left=0.04, bottom=0.07)
     g.fig.suptitle('Nedbør og temperatur for fastlands-norge (absoluttverdier)', fontsize=16, y=0.98)
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     g.add_legend()
-    g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
+    #g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
     #g.savefig('facet_plot.png')
 
 
@@ -55,6 +56,7 @@ def facetgrid_differences(df, season='ANN'):
     g.fig.subplots_adjust(top=0.90, wspace=0.2)
     g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
     g.add_legend()
+    g.savefig('facet_plot_%s.png' % season)
 
 
 def plot2(df):
@@ -80,8 +82,7 @@ def test():
 
 if __name__ == '__main__':
     # Read dataset
-    df = pd.read_csv('kss_analysis_v2.csv', index_col=0, sep=';')
-    #df = pd.read_pickle('kss_analysis_v2.pkl')
+    df = pd.read_csv('kss_analysis_v3.csv', index_col=0, sep=';')
 
     # Add full model column:
     models = df[df.columns[4:7]].apply(
@@ -94,8 +95,8 @@ if __name__ == '__main__':
     #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
     #sns.set(style='ticks')
     facetgrid_all(df)
-    #facetgrid_differences(df)
     '''
+    facetgrid_differences(df, 'ANN')
     facetgrid_differences(df, 'MAM')
     facetgrid_differences(df, 'JJA')
     facetgrid_differences(df, 'SON')
