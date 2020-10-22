@@ -1,3 +1,27 @@
+# ------------------------------------------------------------------------
+# kss_plots.py
+# ------------------------------------------------------------------------
+# Copyright (c) 2020
+#   Tyge Løvset, tylo@norceresearch.no
+#
+# NORCE Climate
+# https://www.norceresearch.no/en/research-area/klima
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ------------------------------------------------------------------------
+
+
 #!/usr/bin/env python
 import os
 import numpy as np
@@ -13,7 +37,7 @@ import cartopy.feature as cpf
 
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
 
-def facetgrid_all(df):
+def facetgrid_abs(df):
     #df = df[df.Season != 'ANN']
     sns.set(style='ticks')
     g = sns.FacetGrid(df, col='Season', col_order= ('ANN', 'JJA', 'SON'),
@@ -27,17 +51,17 @@ def facetgrid_all(df):
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     g.add_legend()
     #g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
-    g.savefig('../plots/facet_plot.png')
+    g.savefig('../plots/facet_plot_abs.png')
 
 
-def facetgrid_abs(df):
+def facetgrid_abs2(df):
     #df = df[df.Season != 'ANN']
     df = df[df.Experiment != 'rcp26']
     df = df[df.Experiment != 'rcp85']
     sns.set(style='ticks')
     g = sns.FacetGrid(df, col='Season', col_order= ('ANN',), # 'JJA', 'SON'),
                           row='Period', row_order=('2071-2100', '2031-2060', '1951-2000'),
-                          hue='Previous Study', palette='bright', height=3.3, aspect=1.35)
+                          hue='Previous Study', palette='bright', height=3.2, aspect=2.5) # 1.35)
     #g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year') # , markers=markers, style='Experiment')
     g.map(scatterplot_func, 'TAS celsius', 'PR mm.year', 'Full Model') # , markers=markers, style='Previous Study')
     #g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
@@ -46,7 +70,7 @@ def facetgrid_abs(df):
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     g.add_legend()
     #g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
-    g.savefig('../plots/facet_plot.png')
+    g.savefig('../plots/facet_plot_abs2.png')
 
 
 def scatterplot_func(x, y, style, **kwargs):
@@ -83,7 +107,7 @@ def facetgrid_differences(df, season='ANN'):
     g.fig.subplots_adjust(top=0.90, wspace=0.2)
     g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
     g.add_legend()
-    g.savefig('../plots/facet_plot_%s.png' % season)
+    g.savefig('../plots/facet_plot_diff_%s.png' % season)
 
 
 def test():
@@ -148,8 +172,37 @@ def region_plot(step):
 
 
 if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    print('kss_plot - make plots for KSS Klima 2100')
+    print('')
+
+    parser.add_argument(
+        '-i', '--indir', default=data_root,
+        help='Input file directory'
+    )
+    parser.add_argument(
+        '-o', '--outdir', default='../plots',
+        help='Output file directory'
+    )
+
+    parser.add_argument(
+        '-s', '--season', default='ANN',
+        help='Season to be plotted (ANN, MAM, JJA, SON, DJF)'
+    )
+    parser.add_argument(
+        '-p', '--plot', default='diff',
+        help='Plot type: (diff, all, region, abs)'
+    )
+    parser.add_argument(
+        '-t', '--type', default='mean',
+        help='Type of statistics (mean, std)'
+    )
+    args = parser.parse_args()
+
     # Read dataset
-    df = pd.read_csv('kss_yseasmean.csv', index_col=0, sep=';')
+    df = pd.read_csv('kss_yseas%s.csv' % args.type, index_col=0, sep=';')
 
     # Add full model column:
     models = df[df.columns[4:7]].apply(
@@ -158,20 +211,16 @@ if __name__ == '__main__':
     )
     df['Full Model'] = models
 
-    #region_plot(1)
-
-    #sns.set_style('whitegrid')
-    #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
-    #sns.set(style='ticks')
-    #facetgrid_all(df)
-    #facetgrid_abs(df)
-
-    facetgrid_differences(df, 'ANN')
-    '''
-    facetgrid_differences(df, 'MAM')
-    facetgrid_differences(df, 'JJA')
-    facetgrid_differences(df, 'SON')
-    facetgrid_differences(df, 'DJF')
-    '''
+    if args.plot == 'region':
+        region_plot(1)
+    elif args.plot == 'all':
+        #sns.set_style('whitegrid')
+        #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
+        #sns.set(style='ticks')
+        facetgrid_abs(df)
+    elif args.plot == 'abs':
+        facetgrid_abs2(df)
+    elif args.plot == 'diff':
+        facetgrid_differences(df, args.season)
     plt.show()
 

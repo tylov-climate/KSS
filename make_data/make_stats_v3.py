@@ -173,10 +173,10 @@ if __name__ == '__main__':
         exit()
     if '-tos' in uname[1]: # NIRD or similar
         inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11'
-        outroot = '/tos-project4/NS9076K/data/cordex-norway'
+        outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3'
     elif uname[1] == 'DESKTOP-H8NNHQA': # Home PC.
         inroot = '/mnt/j/DATA/EUR-11'
-        outroot = '/mnt/c/Dev/DATA/cordex-norway'
+        outroot = '/mnt/c/Dev/DATA/cordex-norway/stats_v3'
 
     #if stat_op == 'ensemble':
     make_ensemble_stats(outroot)
