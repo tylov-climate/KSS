@@ -195,15 +195,17 @@ def create_dataframe(stats, dims, file, stat_op):
     return df
 
 
-# MAIN
-
+### MAIN ###
 
 if __name__ == '__main__':
     uname = platform.uname()[1]
     version = 3
     stat_op = 'yseasmean'
     sub_path = stat_op
-    if len(sys.argv) > 1:
+    if len(sys.argv) == 1:
+        print('Usage: %s mean|std|...' % sys.argv[0])
+        exit()
+    else:
         if sys.argv[1] == '2':
             stat_op = 'tim%s' % sys.argv[1]
             sub_path = ''
@@ -218,7 +220,7 @@ if __name__ == '__main__':
         inroot = 'D:/Data/EUR-11_norway/stats_v%d/%s' % (version, sub_path)
     else: # home
         inroot = 'C:/Dev/DATA/cordex-norway/stats_v%d/%s' % (version, sub_path)
-    file = 'kss_%s' % stat_op
+    file = '%s_kss' % stat_op
 
     if False: # os.path.exists(file + '.pkl'):
         #df = pd.read_pickle(file + '.pkl')

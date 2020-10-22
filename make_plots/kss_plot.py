@@ -169,9 +169,7 @@ def region_plot(step):
     plot_var(rlat, rlon, pr[step, :, :], fig, (1, 2, 2), type=1)
     plt.show()
 
-
-
-if __name__ == '__main__':
+def get_args():
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -192,7 +190,7 @@ if __name__ == '__main__':
         help='Season to be plotted (ANN, MAM, JJA, SON, DJF)'
     )
     parser.add_argument(
-        '-p', '--plot', default='diff',
+        '-p', '--plot', required=True,
         help='Plot type: (diff, all, region, abs)'
     )
     parser.add_argument(
@@ -200,7 +198,13 @@ if __name__ == '__main__':
         help='Type of statistics (mean, std)'
     )
     args = parser.parse_args()
+    return args
 
+
+### MAIN ###
+
+if __name__ == '__main__':
+    args = get_args()
     # Read dataset
     df = pd.read_csv('kss_yseas%s.csv' % args.type, index_col=0, sep=';')
 
