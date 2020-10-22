@@ -232,7 +232,7 @@ if __name__ == '__main__':
     args = get_args()
 
     # Read dataset
-    df = pd.read_csv('kss_yseas%s.csv' % args.type, index_col=0, sep=';')
+    df = pd.read_csv('yseas%s_kss.csv' % args.type, index_col=0, sep=';')
 
     # Add full model column:
     models = df[df.columns[4:7]].apply(
