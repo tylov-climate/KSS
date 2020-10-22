@@ -27,7 +27,7 @@ import os
 import numpy as np
 import pandas as pd
 import netCDF4 as nc4
-
+import platform
 import matplotlib.pyplot as plt
 import seaborn as sns
 import cartopy
@@ -123,12 +123,10 @@ def test():
 
 
 
-norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
+#norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
 
-data_source = '/tos-project4/NS9076K/data/cordex/output/EUR-11'
-#data_root = '/tos-project4/NS9076K/data/cordex-norway/EUR-11'
-data_root = 'C:/Dev/DATA/cordex-norway/yseasmean'
-
+period = ('1951-2000', '2031-2060', '2071-2100')
+season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
 
 def test_sample():
     data_file_tas = '%s_yseasmean_%s_%s/%s_EUR-11_CNRM_CNRM-CERFACS-CNRM-CM5_%s_r1i1p1_ALADIN63_v2_yseasmean_v20190828_%s.nc' % \
@@ -137,8 +135,11 @@ def test_sample():
                 ('pr', '2031-2060', 'rcp45', 'pr', 'rcp45', '2031-2060')
 
     # load NetCDF file into variable
-    nc_tas = nc4.Dataset(os.path.join(data_root, data_file_tas))
-    nc_pr = nc4.Dataset(os.path.join(data_root, data_file_pr))
+    fpath = 'yseas%s_%s_%s_ens%s' % (args.type, period[args.years], args.rcp, args.type)
+    tas_file = args.indir + '/ens%s/tas_%s.nc' % (args.type, fpath)
+    pr_file = args.indir + '/ens%s/pr_%s.nc' % (args.type, fpath)
+    nc_tas = nc4.Dataset(tas_file)
+    nc_pr = nc4.Dataset(pr_file)
     print('loaded')
     return nc_tas, nc_pr
 
@@ -156,7 +157,7 @@ def plot_var(rlat, rlon, var, fig, pos, type=1, res=30):
     return ax
 
 
-def region_plot(step):
+def geo_plot(season):
     nc_tas, nc_pr = test_sample()
     tas = nc_tas.variables['tas']
     pr = nc_pr.variables['pr']
@@ -165,9 +166,22 @@ def region_plot(step):
 
     fig = plt.figure(figsize=(14, 9))
 
-    plot_var(rlat, rlon, tas[step, :, :], fig, (1, 2, 1), type=1)
-    plot_var(rlat, rlon, pr[step, :, :], fig, (1, 2, 2), type=1)
+    s = season_map[season]
+    tas_data = np.swapaxes(tas, 0, 1).mean(axis=1) if s == 0 else tas[s, :, :]
+    pr_data = np.swapaxes(pr, 0, 1).mean(axis=1) if s == 0 else pr[s, :, :]
+
+    plot_var(rlat, rlon, tas_data, fig, (1, 2, 1), type=1)
+    plot_var(rlat, rlon, pr_data, fig, (1, 2, 2), type=1)
     plt.show()
+
+
+uname = platform.uname()[1]
+if '-tos' in uname: # NIRD or similar
+    inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3'
+elif uname == 'CMR-PC-158': # Work
+    inroot = 'D:/Data/EUR-11_norway/stats_v3'
+else: # home
+    inroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
 
 def get_args():
     import argparse
@@ -177,25 +191,36 @@ def get_args():
     print('')
 
     parser.add_argument(
-        '-i', '--indir', default=data_root,
+        '-i', '--indir', default=inroot,
         help='Input file directory'
     )
     parser.add_argument(
         '-o', '--outdir', default='../plots',
         help='Output file directory'
     )
-
     parser.add_argument(
         '-s', '--season', default='ANN',
-        help='Season to be plotted (ANN, MAM, JJA, SON, DJF)'
+        help='Season to be plotted (ANN=default, MAM, JJA, SON, DJF)'
     )
     parser.add_argument(
-        '-p', '--plot', required=True,
-        help='Plot type: (diff, all, region, abs)'
+        '-y', '--years', default=0,
+        help='Year period (0=default: 1951-200, 1: 2031-2060, 2: 2071-2100)'
+    )
+    parser.add_argument(
+        '-v', '--var', default='tas',
+        help='Variable (tas=default, pr)'
+    )
+    parser.add_argument(
+        '--rcp', default='histo',
+        help='RCP (histo=default, rcp26, rpc45, rpc85)'
     )
     parser.add_argument(
         '-t', '--type', default='mean',
-        help='Type of statistics (mean, std)'
+        help='Type of statistics (mean=default, std)'
+    )
+    parser.add_argument(
+        '-p', '--plot', required=True,
+        help='Plot type: (diff, all, geo, abs)'
     )
     args = parser.parse_args()
     return args
@@ -205,6 +230,7 @@ def get_args():
 
 if __name__ == '__main__':
     args = get_args()
+
     # Read dataset
     df = pd.read_csv('kss_yseas%s.csv' % args.type, index_col=0, sep=';')
 
@@ -215,8 +241,8 @@ if __name__ == '__main__':
     )
     df['Full Model'] = models
 
-    if args.plot == 'region':
-        region_plot(1)
+    if args.plot == 'geo':
+        geo_plot(args.season)
     elif args.plot == 'all':
         #sns.set_style('whitegrid')
         #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
