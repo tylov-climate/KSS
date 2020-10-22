@@ -3,6 +3,7 @@
 # Developed by Tyge Lovset, September 2020
 
 import os
+import sys
 import platform
 import glob
 import netCDF4 as nc4
@@ -40,27 +41,23 @@ def load_mask():
 
 def average_data(inroot, output, version):
     seasons, exps, stat_ops, variables, models = [], [], [], [], []
-    if version == 1:
-        dirpattern = '/*/*/*'
-        seasons = ('full', 's1', 's2', 's3', 's4')
-    elif version == 2:
+    if version == 2:
         dirpattern = '/*/*'
         seasons = ('FULL', 'MAM', 'JJA', 'SON', 'DJF')
     elif version == 3:
         dirpattern = '/*'
         seasons = ('FULL', 'MAM', 'JJA', 'SON', 'DJF')
 
+    print(inroot, output, version)
+
     for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
-            if version == 1:
-                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period, season, stat_op = f[:-3].split('_')
-            elif version == 2:
+            if version == 2:
                 domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, stat_op, season, period = f[:-3].split('_')
             elif version == 3:
-                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period = f[:-3].split('_')
+                var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period = f[:-3].split('_')
                 season = 'all'
-                stat_op = 'timmean'
 
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
@@ -100,15 +97,12 @@ def average_data(inroot, output, version):
     for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
-            if version == 1:
-                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period, season, stat_op = f[:-3].split('_')
-            elif version == 2:
+            if version == 2:
                 domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, stat_op, season, period = f[:-3].split('_')
             elif version == 3:
-                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, period = f[:-3].split('_')
+                var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period = f[:-3].split('_')
                 season = 'all'
-                stat_op = 'timmean'
-
+            #print(var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period)
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
 
@@ -128,7 +122,7 @@ def average_data(inroot, output, version):
                             #value_unmasked = np.mean(data)
                             data = np.ma.masked_array(data, mask=mask_img) # Mask is with Norway shape file.
                             value = np.mean(data)
-                            if var_id == 'tas' and value < 200.0:
+                            if var_id == 'tas' and value < 200.0: # Fix some data with C degrees instead of K.
                                 value += 273.15
                             stats[d[0][season]][d[1][exp_name]][d[2][stat_op]][d[3][var_id]][d[4][model_name]] = value
                             print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value) # , value_unmasked)
@@ -136,7 +130,7 @@ def average_data(inroot, output, version):
     return stats, dims
 
 
-def create_dataframe(stats, dims, file):
+def create_dataframe(stats, dims, file, stat_op):
     d = dims['inv']
     season_ren = {'full': 'ANN', 's1': 'MAM', 's2': 'JJA', 's3': 'SON', 's4': 'DJF',
                   'FULL': 'ANN', 'MAM': 'MAM', 'JJA': 'JJA', 'SON': 'SON', 'DJF': 'DJF'}
@@ -160,10 +154,10 @@ def create_dataframe(stats, dims, file):
                 source = model[1].split('-')
                 s = d[0][season]
                 x = d[1][exp_name]
-                a = d[2]['timmean']
+                o = d[2][stat_op]
                 n = d[4][model_name]
-                tas_mean = stats[s][x][a][d[3]['tas']][n]
-                pr_mean = stats[s][x][a][d[3]['pr']][n]
+                tas_mean = stats[s][x][o][d[3]['tas']][n]
+                pr_mean = stats[s][x][o][d[3]['pr']][n]
                 #tas_variance = stats[s][x][d[2]['timvar']][d[3]['tas']][n]
                 #pr_variance = stats[s][x][d[2]['timvar']][d[3]['pr']][n]
                 if not (math.isnan(tas_mean) and math.isnan(pr_mean)):
@@ -178,14 +172,10 @@ def create_dataframe(stats, dims, file):
                     m['RCM Ver'].append(model[4])
                     m['TAS celsius'].append(tas_mean - 273.15)
                     m['PR mm.year'].append(pr_mean * pr_fac)
-                    #m['TAS'].append(tas_mean)
-                    #m['PR'].append(pr_mean)
-                    #m['TAS variance'].append(tas_variance)
-                    #m['PR variance'].append(pr_variance)
 
                     if x > 0:
-                        m['TAS diff'].append(tas_mean - stats[s][0][a][d[3]['tas']][n])
-                        m['PR diff'].append(100 * (pr_mean - stats[s][0][a][d[3]['pr']][n]) / stats[s][0][a][d[3]['pr']][n])
+                        m['TAS diff'].append(tas_mean - stats[s][0][o][d[3]['tas']][n])
+                        m['PR diff'].append(100 * (pr_mean - stats[s][0][o][d[3]['pr']][n]) / stats[s][0][o][d[3]['pr']][n])
                     else:
                         m['TAS diff'].append(0.0)
                         m['PR diff'].append(0.0)
@@ -211,13 +201,21 @@ def create_dataframe(stats, dims, file):
 if __name__ == '__main__':
     uname = platform.uname()[1]
     version = 3
+    stat_op = 'yseasmean'
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '2':
+            stat_op = 'stats_v2'
+            version = 2
+        else:
+            stat_op = 'yseas%s' % sys.argv[1]
+
     if '-tos' in uname: # NIRD or similar
-        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v%d' % version
+        inroot = '/tos-project4/NS9076K/data/cordex-norway/%s' % stat_op
     elif uname == 'CMR-PC-158': # Work
-        inroot = 'D:/Data/EUR-11_norway/stats_v%d' % version
+        inroot = 'D:/Data/EUR-11_norway/yseas%s' % stat_op
     else: # home
-        inroot = 'C:/Dev/DATA/stats_v%d' % version
-    file = 'kss_analysis_v%d' % version
+        inroot = 'C:/Dev/DATA/cordex-norway/%s' % stat_op
+    file = 'kss_%s' % stat_op
 
     if False: # os.path.exists(file + '.pkl'):
         #df = pd.read_pickle(file + '.pkl')
@@ -229,6 +227,6 @@ if __name__ == '__main__':
         print(dims['exps'])
         print(dims['stat_ops'])
         print(dims['variables'])
-        df = create_dataframe(stats, dims, file)
+        df = create_dataframe(stats, dims, file, stat_op)
     print(df)
 

@@ -58,10 +58,44 @@ def find_period(d1, d2, periods):
     return -1
 
 
+def make_ensemble_stats(inroot):
+    for dd in glob.glob(os.path.join(inroot, 'yseasmean/*')):
+        base = os.path.basename(dd)
+        for op in ('mean', 'std'):
+            outdir = os.path.join(inroot, 'ens%s' % op)
+            if not os.path.isdir(outdir):
+                os.makedirs(outdir)
+            outfile = os.path.join(outdir, base + '_ens%s.nc' % op)
+            if os.path.isfile(outfile):
+                print(outfile, '    ...exists')
+                #return
+            ret = os.system("cdo -O ens%s %s/*.nc %s" % (op, dd, outfile))
+
+    if True:
+        for ff in glob.glob(os.path.join(inroot, 'ensmean/*.nc')):
+            base = os.path.basename(ff)
+            arr = base.split('_')
+            if arr[3] == 'histo':
+                continue
+            print('computing diff:', ff)
+            fhist = os.path.join(os.path.dirname(ff), '_'.join((arr[0], arr[1], '1951-2000_histo', arr[4])))
+            outfile = os.path.join(inroot, 'ensdiff', '_'.join((arr[0], 'ensdiff', arr[2], arr[3])) + '.nc')
+
+            nc = nc4.Dataset(ff, 'r+')
+            nc_hist = nc4.Dataset(fhist)
+            var = nc.variables[arr[0]][:] - nc_hist.variables[arr[0]][:]
+            if arr[0] == 'pr':
+                var /= nc_hist.variables[arr[0]][:]
+            nc[arr[0]][:] = var
+            nc.close()
+
+
+
 def make_stats(inroot, outroot, stat_op, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
-    print(inroot, type(inroot))
+    print(inroot)
     if inroot[-1] != '/':
         inroot += '/'
+    outroot = os.path.join(outroot, 'yseas%s' % stat_op)
     if not os.path.isdir(outroot):
         os.makedirs(outroot)
 
@@ -89,7 +123,7 @@ def make_stats(inroot, outroot, stat_op, periods=((1951, 2000), (2031, 2060), (2
         for p, period_files in period_map.items():
             op = 'yseas' + stat_op
             period_id = '%d-%d' % (periods[p][0], periods[p][1])
-            experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % ('EUR-11', institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
+            experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, op, create_ver_id)
             outfile = os.path.join(outroot, '%s_%s_%s_%s' % (var_id, op, period_id, experiment_id[:5]), experiment + '_%s.nc' % period_id)
 
             if os.path.isfile(outfile):
@@ -122,20 +156,8 @@ def make_stats(inroot, outroot, stat_op, periods=((1951, 2000), (2031, 2060), (2
 # Create mean and variance average data over all the periods, seasons (full = all seasons)
 
 if __name__ == '__main__':
-    uname = platform.uname()
-    if uname[0] != 'Linux':
-        print('Exit. Must be run under Linux because it needs CDO and NCO')
-        exit()
-    if '-tos' in uname[1]: # NIRD or similar
-        inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11'
-        outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3'
-    elif uname[1] == 'DESKTOP-H8NNHQA': # Home PC.
-        inroot = '/mnt/j/DATA/EUR-11'
-        outroot = '/mnt/c/Dev/DATA/stats_v3'
-
-
     periods = ((1951, 2000), (2031, 2060), (2071, 2100))
-    stat_ops = {'mean': 1, 'avg': 2, 'var': 3, 'std': 4, 'min': 5, 'max': 6, 'range': 7}
+    stat_ops = {'mean': 1, 'avg': 2, 'var': 3, 'std': 4, 'min': 5, 'max': 6, 'range': 7, 'ensemble': 8}
     try:
         stat_op = sys.argv[1]
         n = stat_ops[stat_op]
@@ -145,4 +167,18 @@ if __name__ == '__main__':
         print('Usage: make_stats {mean|avg|var|std|min|max|range} [intervals]')
         exit()
 
-    make_stats(inroot, outroot, stat_op, periods)
+    uname = platform.uname()
+    if uname[0] != 'Linux':
+        print('Exit. Must be run under Linux because it needs CDO and NCO')
+        exit()
+    if '-tos' in uname[1]: # NIRD or similar
+        inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11'
+        outroot = '/tos-project4/NS9076K/data/cordex-norway'
+    elif uname[1] == 'DESKTOP-H8NNHQA': # Home PC.
+        inroot = '/mnt/j/DATA/EUR-11'
+        outroot = '/mnt/c/Dev/DATA/cordex-norway'
+
+    #if stat_op == 'ensemble':
+    make_ensemble_stats(outroot)
+    #else:
+    #    make_stats(inroot, outroot, stat_op, periods)
