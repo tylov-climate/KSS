@@ -202,19 +202,22 @@ if __name__ == '__main__':
     uname = platform.uname()[1]
     version = 3
     stat_op = 'yseasmean'
+    sub_path = stat_op
     if len(sys.argv) > 1:
         if sys.argv[1] == '2':
-            stat_op = 'stats_v2'
+            stat_op = 'tim%s' % sys.argv[1]
+            sub_path = ''
             version = 2
         else:
             stat_op = 'yseas%s' % sys.argv[1]
+            sub_path = stat_op
 
     if '-tos' in uname: # NIRD or similar
-        inroot = '/tos-project4/NS9076K/data/cordex-norway/%s' % stat_op
+        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v%d/%s' % (version, sub_path)
     elif uname == 'CMR-PC-158': # Work
-        inroot = 'D:/Data/EUR-11_norway/yseas%s' % stat_op
+        inroot = 'D:/Data/EUR-11_norway/stats_v%d/%s' % (version, sub_path)
     else: # home
-        inroot = 'C:/Dev/DATA/cordex-norway/%s' % stat_op
+        inroot = 'C:/Dev/DATA/cordex-norway/stats_v%d/%s' % (version, sub_path)
     file = 'kss_%s' % stat_op
 
     if False: # os.path.exists(file + '.pkl'):

@@ -27,7 +27,7 @@ def facetgrid_all(df):
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     g.add_legend()
     #g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
-    #g.savefig('facet_plot.png')
+    g.savefig('../plots/facet_plot.png')
 
 
 def facetgrid_abs(df):
@@ -46,7 +46,7 @@ def facetgrid_abs(df):
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     g.add_legend()
     #g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
-    #g.savefig('facet_plot.png')
+    g.savefig('../plots/facet_plot.png')
 
 
 def scatterplot_func(x, y, style, **kwargs):
@@ -83,17 +83,7 @@ def facetgrid_differences(df, season='ANN'):
     g.fig.subplots_adjust(top=0.90, wspace=0.2)
     g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
     g.add_legend()
-    g.savefig('facet_plot_%s.png' % season)
-
-
-def plot2(df):
-    df = df[df.Season == 'ANN']
-    g = sns.FacetGrid(df, row='Previous Study', col='Period', hue='Experiment', palette='bright') # height=6, aspect=.8
-    g.map_dataframe(sns.scatterplot, x='PR mm.year', y='TAS celsius', style='Institute', markers=markers, legend='full')
-    g.set_axis_labels('Precipitation mm.', 'Surface temp. C.')
-    g.add_legend()
-    g.set(xlim=(2, 3.8), ylim=(-3, 9)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
-    #g.savefig('facet_plot.png')
+    g.savefig('../plots/facet_plot_%s.png' % season)
 
 
 def test():
