@@ -76,7 +76,7 @@ def facetgrid_abs(df, season='ANN'):
     #g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
     if not os.path.isdir('../plots'):
         os.makedirs('../plots')
-    g.savefig('../plots/facet_plot_abs.png')
+    g.savefig('../plots/facet_plot_abs_%s.png' % season)
 
 '''
 def facetgrid_abs2(df, season='ANN'):
