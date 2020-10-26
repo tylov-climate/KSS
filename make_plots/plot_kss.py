@@ -211,6 +211,10 @@ def get_args():
         help='Variable (tas=default, pr)'
     )
     parser.add_argument(
+        '-m', '--model', default='',
+        help='Model ()'
+    )
+    parser.add_argument(
         '--rcp', default='histo',
         help='RCP (histo=default, rcp26, rpc45, rpc85)'
     )

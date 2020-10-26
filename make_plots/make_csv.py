@@ -33,7 +33,7 @@ last_study_models = [
 
 def load_mask():
     img = mpimg.imread('norway_mask.png')
-    img = img[:,:,0] < 0.5
+    img = img[:,:,0] > 0.5
     return img
 
 
@@ -94,6 +94,7 @@ def average_data(inroot, output, version):
     d = dims['inv']
     n = 0
     mask_img = load_mask()
+    mask_img = np.flip(mask_img, axis=0)
     for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
@@ -125,6 +126,8 @@ def average_data(inroot, output, version):
                             if var_id == 'tas' and value < 200.0: # Fix some data with C degrees instead of K.
                                 value += 273.15
                             stats[d[0][season]][d[1][exp_name]][d[2][stat_op]][d[3][var_id]][d[4][model_name]] = value
+                            if var_id == 'pr':
+                                value *= 365.25 * 24 * 60 * 60
                             print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value) # , value_unmasked)
                             n += 1
     return stats, dims
