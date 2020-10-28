@@ -69,7 +69,11 @@ def make_ensemble_stats(inroot):
             if os.path.isfile(outfile):
                 print(outfile, '    ...exists')
                 #return
-            ret = os.system("cdo -O ens%s %s/*.nc %s" % (op, dd, outfile))
+            if base[:3] == 'pr_':
+                ret = os.system('cdo -O ens%s -chunit,"kg m-2 s-1","mm year-1" %s/*.nc %s' % (op, dd, 'tmp.nc'))
+                ret = os.system('ncap2 -O -s "pr=31557600*pr" %s %s' % ('tmp.nc', outfile))
+            else:
+                ret = os.system("cdo -O ens%s %s/*.nc %s" % (op, dd, outfile))
 
     if True:
         for ff in glob.glob(os.path.join(inroot, 'ensmean/*.nc')):
@@ -83,7 +87,7 @@ def make_ensemble_stats(inroot):
 
             nc = nc4.Dataset(ff, 'r+')
             nc_hist = nc4.Dataset(fhist)
-            var = nc.variables[arr[0]][:] - nc_hist.variables[arr[0]][:]
+            var = 100 * (nc.variables[arr[0]][:] - nc_hist.variables[arr[0]][:])
             if arr[0] == 'pr':
                 var /= nc_hist.variables[arr[0]][:]
             nc[arr[0]][:] = var
@@ -138,8 +142,8 @@ def make_stats(inroot, outroot, stat_op, periods=((1951, 2000), (2031, 2060), (2
             ret = os.system(cmd)
             '''
             if var_id == 'pr' and ret == 0:
-                if 0 == os.system('ncap2 -s "pr=86400*pr" %s %s.nc' % (tmpfile, tmpfile)):
-                    if 0 == os.system('ncatted -O -a units,pr,m,c,"mm/day" %s.nc %s' % (tmpfile, tmpfile)):
+                if 0 == os.system('ncap2 -s "pr=31557600*pr" %s %s.nc' % (tmpfile, tmpfile)):
+                    if 0 == os.system('ncatted -O -a units,pr,m,c,"mm/year" %s.nc %s' % (tmpfile, tmpfile)):
                         os.remove(tmpfile + '.nc')
             '''
             if ret == 0:

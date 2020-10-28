@@ -37,28 +37,35 @@ import cartopy.feature as cpf
 
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
 
-def facetgrid_diff(df, season='ANN'):
+def barchart(df):
+    df = df[df['Previous Study'] == True]
+    df = df[df.Season == args.season]
+    sns.set(style="whitegrid")
+    ax = sns.barplot(x="TAS diff", y="Full Model", data=df)
+
+
+def facetgrid_diff(df):
     markers = ['v', 'o']
     #sns.set_style('whitegrid')
     sns.set(style='ticks')
-    df = df[df.Season == season]
+    df = df[df.Season == args.season]
     df = df[df.Experiment != 'historical']
     g = sns.FacetGrid(df, col='Experiment',
                           row='Period', row_order=('2071-2100', '2031-2060'),
                           hue='Previous Study', palette='bright', height=5, aspect=1.0,
                           legend_out=True, despine=False, sharex=False, sharey=False) #
-    g.fig.suptitle('Nedbør- og temperatur-endring: %s' % season, fontsize=16, y=0.98)
+    g.fig.suptitle('Nedbør- og temperatur-endring: %s' % args.season, fontsize=16, y=0.98)
     g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
     g.fig.subplots_adjust(top=0.90, wspace=0.2)
     g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
     g.add_legend()
     if not os.path.isdir('../plots'):
         os.makedirs('../plots')
-    g.savefig('../plots/facet_plot_diff_%s.png' % season)
+    g.savefig('../plots/facet_plot_diff_%s.png' % args.season)
 
 
-def facetgrid_abs(df, season='ANN'):
-    df = df[df.Season == season]
+def facetgrid_abs(df):
+    df = df[df.Season == args.season]
     df = df[df.Experiment != 'historical']
     g = sns.FacetGrid(df, col='Experiment',
                           row='Period', row_order=('2071-2100', '2031-2060'),
@@ -68,7 +75,7 @@ def facetgrid_abs(df, season='ANN'):
     g.map(scatterplot_func, 'TAS celsius', 'PR mm.year', 'Full Model') # , markers=markers, style='Previous Study')
     #g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
     g.fig.subplots_adjust(top=0.92, left=0.04, bottom=0.07)
-    g.fig.suptitle('Nedbør og temperatur for fastlands-norge %s (absoluttverdier)' % season, fontsize=16, y=0.98)
+    g.fig.suptitle('Nedbør og temperatur for fastlands-norge %s (absoluttverdier)' % args.season, fontsize=16, y=0.98)
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     sns.set_style('whitegrid')
     #sns.set(style='ticks')
@@ -76,10 +83,10 @@ def facetgrid_abs(df, season='ANN'):
     #g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
     if not os.path.isdir('../plots'):
         os.makedirs('../plots')
-    g.savefig('../plots/facet_plot_abs_%s.png' % season)
+    g.savefig('../plots/facet_plot_abs_%s.png' % args.season)
 
 '''
-def facetgrid_abs2(df, season='ANN'):
+def facetgrid_abs2(df):
     df = df[df.Season != 'ANN']
     #df = df[df.Experiment != 'rcp26']
     #df = df[df.Experiment != 'rcp85']
@@ -133,7 +140,7 @@ def test():
 
 #norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
 
-period = ('1951-2000', '2031-2060', '2071-2100')
+periods = ('1951-2000', '2031-2060', '2071-2100')
 season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
 
 def test_sample():
@@ -143,7 +150,7 @@ def test_sample():
                 ('pr', '2031-2060', 'rcp45', 'pr', 'rcp45', '2031-2060')
 
     # load NetCDF file into variable
-    fpath = 'yseas%s_%s_%s_ens%s' % (args.type, period[args.years], args.rcp, args.type)
+    fpath = 'yseas%s_%s_%s_ens%s' % (args.type, periods[args.years], args.rcp, args.type)
     tas_file = args.indir + '/ens%s/tas_%s.nc' % (args.type, fpath)
     pr_file = args.indir + '/ens%s/pr_%s.nc' % (args.type, fpath)
     nc_tas = nc4.Dataset(tas_file)
@@ -165,7 +172,7 @@ def plot_var(rlat, rlon, var, fig, pos, type=1, res=30):
     return ax
 
 
-def geo_plot(season):
+def geo_plot():
     nc_tas, nc_pr = test_sample()
     tas = nc_tas.variables['tas']
     pr = nc_pr.variables['pr']
@@ -174,7 +181,7 @@ def geo_plot(season):
 
     fig = plt.figure(figsize=(14, 9))
 
-    s = season_map[season]
+    s = season_map[args.season]
     tas_data = np.swapaxes(tas, 0, 1).mean(axis=1) if s == 0 else tas[s, :, :]
     pr_data = np.swapaxes(pr, 0, 1).mean(axis=1) if s == 0 else pr[s, :, :]
 
@@ -215,16 +222,16 @@ def get_args():
         help='Year period (0=default: 1951-200, 1: 2031-2060, 2: 2071-2100)'
     )
     parser.add_argument(
-        '-v', '--var', default='tas',
-        help='Variable (tas=default, pr)'
+        '-v', '--var', default='TAS diff',
+        help='Variable ()'
     )
     parser.add_argument(
         '-m', '--model', default='',
         help='Model ()'
     )
     parser.add_argument(
-        '--rcp', default='histo',
-        help='RCP (histo=default, rcp26, rpc45, rpc85)'
+        '--rcp', default='rcp45',
+        help='RCP (rcp26, default=rpc45, rpc85)'
     )
     parser.add_argument(
         '-t', '--type', default='mean',
@@ -253,14 +260,16 @@ if __name__ == '__main__':
     )
     df['Full Model'] = models
 
-    if args.plot == 'geo':
-        geo_plot(args.season)
+    if args.plot == 'bar':
+        barchart(df)
+    elif args.plot == 'geo':
+        geo_plot()
     elif args.plot == 'abs':
         #sns.set_style('whitegrid')
         #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
         #sns.set(style='ticks')
-        facetgrid_abs(df, args.season)
+        facetgrid_abs(df)
     elif args.plot == 'diff':
-        facetgrid_diff(df, args.season)
+        facetgrid_diff(df)
     plt.show()
 
