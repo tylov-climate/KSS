@@ -86,44 +86,58 @@ def facetgrid_abs(df):
         os.makedirs('../plots')
     g.savefig('../plots/facet_plot_abs_%s.png' % args.season)
 
-'''
 def facetgrid_abs2(df):
-    df = df[df.Season != 'ANN']
-    #df = df[df.Experiment != 'rcp26']
-    #df = df[df.Experiment != 'rcp85']
+    df = df[df.Season == args.season]
+    df = df[df.Period == '1951-2000']
+    df = df[df.Experiment == 'historical']
     sns.set(style='ticks')
-    g = sns.FacetGrid(df, col='Season', col_order= ('ANN',), # 'JJA', 'SON'),
-                          row='Period', row_order=('2071-2100', '2031-2060', '1951-2000'),
-                          hue='Previous Study', palette='bright', height=3.2, aspect=2.5) # 1.35)
+    g = sns.FacetGrid(df, col='Period',
+                          row='Experiment',
+                          hue='Previous Study', palette='bright', height=6.2, aspect=1.6)
     #g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year') # , markers=markers, style='Experiment')
     g.map(scatterplot_func, 'TAS celsius', 'PR mm.year', 'Full Model') # , markers=markers, style='Previous Study')
-    #g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
-    g.fig.subplots_adjust(top=0.92, left=0.04, bottom=0.07)
-    g.fig.suptitle('Nedbør og temperatur for fastlands-norge (absoluttverdier)', fontsize=16, y=0.98)
+    g.fig.subplots_adjust(top=0.91, left=0.04, bottom=0.07)
+    g.fig.suptitle('Nedbør og temperatur for fastlands-norge (absoluttverdier)', fontsize=16, y=1.0)
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     g.add_legend()
     #g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
     g.savefig('../plots/facet_plot_abs2.png')
-'''
 
 def scatterplot_func(x, y, style, **kwargs):
-    xm, ym = np.mean(x), np.mean(y)
+    xa, ya = x.to_numpy(), y.to_numpy()
+    xm, ym = np.mean(xa), np.mean(ya)
+    work = []
+    for i in range(len(xa)):
+        work.append((i, xa[i], ya[i]))
+    work.sort(key=lambda p: p[1])
+    k = 2
+    tmp = [e[0] for e in work]
+    xmd = work[len(tmp) // 2]
+
+    list = tmp[:k] + tmp[-k:]
+    work.sort(key=lambda p: p[2])
+    tmp = [e[0] for e in work]
+    ymd = work[len(tmp) // 2]
+    list = list + tmp[:k] + tmp[-k:]
+    print(list, xmd, ymd)
     # Average, big diamond:
     c = kwargs.get('color', 'k')
     plt.scatter(x=xm, y=ym, color=c, marker='D', s=60)
     ax = sns.scatterplot(x, y, s=25, marker='o', **kwargs)
     ax.axhline(ym, alpha=0.1, color='black')
     ax.axvline(xm, alpha=0.1, color='black')
-    x = x.to_numpy()
-    y = y.to_numpy()
+    plt.scatter(x=xmd[1], y=ymd[2], color=c, marker='s', s=60)
     if c[2] == 1.0:
-        list = np.unique((np.where(x == max(x)), np.where(y == max(y)), np.where(x == min(x)), np.where(y == min(y))))
+        #list = np.unique((np.where(xa == max(xa)), np.where(ya == max(ya)), np.where(xa == min(xa)), np.where(ya == min(ya))))
+        sn = [i for i, s in enumerate(style.iloc) if 'seNorge' in s]
+        list = np.concatenate((list, sn))
     else:
-        list = np.unique(np.where(y == max(y))) # Old models: print high precipitation only
+        list = np.unique(np.where(ya == max(ya))) # Old models: print high precipitation only
+
     for i in list:
         p = style.iloc[i].split('_', 2)
         s = '-'.join(p[0].split('-')[:2] + p[1:])
-        ax.text(x[i], y[i], s, size='small') # , horizontalalignment='center', size='medium', color='black', weight='semibold')
+        ax.text(xa[i], ya[i], s, size='small') # , horizontalalignment='center', size='medium', color='black', weight='semibold')
 
 
 def test():
@@ -270,6 +284,8 @@ if __name__ == '__main__':
         #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
         #sns.set(style='ticks')
         facetgrid_abs(df)
+    elif args.plot == 'abs2':
+        facetgrid_abs2(df)
     elif args.plot == 'diff':
         facetgrid_diff(df)
     plt.show()
