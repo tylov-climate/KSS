@@ -133,7 +133,7 @@ def average_data(inroot, output, version):
     return stats, dims
 
 
-def create_dataframe(stats, dims, file, stat_op):
+def create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=False):
     d = dims['inv']
     season_ren = {'full': 'ANN', 's1': 'MAM', 's2': 'JJA', 's3': 'SON', 's4': 'DJF',
                   'FULL': 'ANN', 'MAM': 'MAM', 'JJA': 'JJA', 'SON': 'SON', 'DJF': 'DJF'}
@@ -146,15 +146,38 @@ def create_dataframe(stats, dims, file, stat_op):
          'TAS diff': [], 'PR diff': [],
          }
 
+    overlaps = {
+        'CNRM-CM5': ['ALADIN', 'ALARO', 'HIRHAM5', 'REMO'],
+        'EC-EARTH': ['CCLM', 'COSMO-crCLIM', 'HIRHAM5', 'RCA', 'REMO'],
+        'HadGEM2-ES': ['COSMO-crCLIM', 'HIRHAM5', 'RCA'],
+        'IPSL-CM5A-MR': ['REMO'],
+        'MPI-ESM-LR': ['RCA', 'REMO'],
+        'NorESM1-M': ['RCA', 'REMO']
+    }
+
     pr_fac = 365.25 * 24 * 60 * 60
 
     for season in dims['seasons']:
         season_disp = season_ren[season]
         for exp_name in dims['exps']:
             exp_disp = exp_name.split('_')
-            for model_name in dims['models']: # institute_id, model_id, ensemble_id, source_id, rcm_version
+            for model_name in dims['models']: # institute_id, model_sign, ensemble_id, source_id, rcm_version
                 model = model_name.split('_')
                 source = model[1].split('-')
+
+                if use_rcp_overlaps:
+                    match = False
+                    for key, val in overlaps.items():
+                        if match: break
+                        if model[1].endswith(key):           # 'Model' in csv
+                            for mod in val:
+                                if model[3].startswith(mod): # 'Model Id' in csv
+                                    match = True
+                                    #print("MATCH: ", key, ':', model[3])
+                                    break
+                    if not match:
+                        continue
+
                 s = d[0][season]
                 x = d[1][exp_name]
                 o = d[2][stat_op]
@@ -194,6 +217,8 @@ def create_dataframe(stats, dims, file, stat_op):
         last_study |= models == last_study_models[i]
     df['Previous Study'] = last_study
     #df.to_pickle(file + '.pkl')
+    if use_rcp_overlaps:
+        file += '_overlaps'
     df.to_csv(file + '.csv', sep=';')
     return df
 
@@ -235,6 +260,6 @@ if __name__ == '__main__':
         print(dims['exps'])
         print(dims['stat_ops'])
         print(dims['variables'])
-        df = create_dataframe(stats, dims, file, stat_op)
+        df = create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=True)
     print(df)
 
