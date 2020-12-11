@@ -46,15 +46,17 @@ def barchart(df):
 
 
 def facetgrid_diff(df):
+    global periods
     markers = ['v', 'o']
     #sns.set_style('whitegrid')
     sns.set(style='ticks')
     df = df[df.Season == args.season]
+    df = df[df.Period == periods[int(args.period)]]
     df = df[df.Experiment != 'historical']
     g = sns.FacetGrid(df, col='Experiment',
-                          row='Period', row_order=('2071-2100', '2031-2060'),
-                          hue='Previous Study', palette='bright', height=5, aspect=1.0,
-                          legend_out=True, despine=False, sharex=False, sharey=False) #
+                          row='Period',
+                          hue='Previous Study', palette='bright', height=10, aspect=0.5,
+                          legend_out=False, despine=True, sharex=False, sharey=False) #
     g.fig.suptitle('Nedbør- og temperatur-endring: %s' % args.season, fontsize=16, y=0.98)
     g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
     g.fig.subplots_adjust(top=0.90, wspace=0.2)
@@ -62,78 +64,71 @@ def facetgrid_diff(df):
     g.add_legend()
     if not os.path.isdir('../plots'):
         os.makedirs('../plots')
-    g.savefig('../plots/facet_plot_diff_%s.png' % args.season)
+    overlaps = '_overlaps' if args.overlaps else ''
+    g.savefig('../plots/facet_plot_diff_%s%s.png' % (args.season, overlaps))
 
 
 def facetgrid_abs(df):
     df = df[df.Season == args.season]
-    df = df[df.Experiment != 'historical']
-    g = sns.FacetGrid(df, col='Experiment',
-                          row='Period', row_order=('2071-2100', '2031-2060'),
-                          hue='Previous Study', palette='bright', height=4.8, aspect=1.2,
-                          legend_out=True, despine=False, sharex=False, sharey=False) #
-    #g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year') # , markers=markers, style='Experiment')
-    g.map(scatterplot_func, 'TAS celsius', 'PR mm.year', 'Full Model') # , markers=markers, style='Previous Study')
-    #g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
-    g.fig.subplots_adjust(top=0.92, left=0.04, bottom=0.07)
-    g.fig.suptitle('Nedbør og temperatur for fastlands-norge %s (absoluttverdier)' % args.season, fontsize=16, y=0.98)
-    g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
-    sns.set_style('whitegrid')
-    #sns.set(style='ticks')
-    g.add_legend()
-    #g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
-    if not os.path.isdir('../plots'):
-        os.makedirs('../plots')
-    g.savefig('../plots/facet_plot_abs_%s.png' % args.season)
-
-def facetgrid_abs2(df):
-    df = df[df.Season == args.season]
-    df = df[df.Period == '1951-2000']
-    df = df[df.Experiment == 'historical']
+    df = df[df.Period == periods[int(args.period)]]
     sns.set(style='ticks')
-    g = sns.FacetGrid(df, col='Period',
-                          row='Experiment',
-                          hue='Previous Study', palette='bright', height=6.2, aspect=1.6)
-    #g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year') # , markers=markers, style='Experiment')
+    g = sns.FacetGrid(df, col='Experiment',
+                          row='Period',
+                          hue='Previous Study', palette='bright', height=10, aspect=0.5,
+                          legend_out=False, despine=True, sharex=False, sharey=False)
+    #g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year')
     g.map(scatterplot_func, 'TAS celsius', 'PR mm.year', 'Full Model') # , markers=markers, style='Previous Study')
     g.fig.subplots_adjust(top=0.91, left=0.04, bottom=0.07)
     g.fig.suptitle('Nedbør og temperatur for fastlands-norge (absoluttverdier)', fontsize=16, y=1.0)
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     g.add_legend()
-    #g.set(ylim=(570, 1620), xlim=(-11, 18)) # , xticks=[10, 30, 50], yticks=[2, 6, 10])
-    g.savefig('../plots/facet_plot_abs2.png')
+    overlaps = '_overlaps' if args.overlaps else ''
+    g.savefig('../plots/facet_plot_abs_%s%s.png' % (args.season, overlaps))
+
+
+def get_extreme_values(xa, ya):
+    k = 2
+    sorted = []
+    for i in range(len(xa)):
+        sorted.append((i, xa[i], ya[i]))
+
+    sorted.sort(key=lambda p: p[1])
+    all = [e[0] for e in sorted]
+    extremes = all[:k] + all[-k:] # The k most extremes in x-dir
+    xmd = sorted[len(all) // 2]   # Median x
+
+    sorted.sort(key=lambda p: p[2])
+    all = [e[0] for e in sorted]
+    ymd = sorted[len(all) // 2]   # Median y
+    extremes = extremes + all[:k] + all[-k:] # Add the k most extremes in y-dir
+    return extremes, xmd, ymd, all
+
 
 def scatterplot_func(x, y, style, **kwargs):
+    global args
     xa, ya = x.to_numpy(), y.to_numpy()
     xm, ym = np.mean(xa), np.mean(ya)
-    work = []
-    for i in range(len(xa)):
-        work.append((i, xa[i], ya[i]))
-    work.sort(key=lambda p: p[1])
-    k = 2
-    tmp = [e[0] for e in work]
-    xmd = work[len(tmp) // 2]
+    extremes, xmd, ymd, all = get_extreme_values(xa, ya)
 
-    list = tmp[:k] + tmp[-k:]
-    work.sort(key=lambda p: p[2])
-    tmp = [e[0] for e in work]
-    ymd = work[len(tmp) // 2]
-    list = list + tmp[:k] + tmp[-k:]
-    print(list, xmd, ymd)
-    # Average, big diamond:
     c = kwargs.get('color', 'k')
-    plt.scatter(x=xm, y=ym, color=c, marker='D', s=60)
-    ax = sns.scatterplot(x, y, s=25, marker='o', **kwargs)
+    if args.overlaps:
+        list = all  # plot all names
+    elif c[2] != 1.0:
+        list = np.unique(np.where(ya == max(ya))) # plot highest precipitation name only
+    else:
+        #sn = [i for i, s in enumerate(style.iloc) if 'seNorge' in s] # Add seNorge modellen to printed list
+        #list = np.concatenate((extremes, sn))
+        list = extremes # plot extreme names only
+
+    #print(list, xmd, ymd)
+
+    plt.scatter(x=xmd[1], y=ymd[2], color=c, marker='s', s=60) # Plot median as 's'quare
+    plt.scatter(x=xm, y=ym, color=c, marker='D', s=60)         # Plot average as big 'D'iamond
+    ax = sns.scatterplot(x, y, s=25, marker='o', **kwargs)     # Plot average as r'o'und
     ax.axhline(ym, alpha=0.1, color='black')
     ax.axvline(xm, alpha=0.1, color='black')
-    plt.scatter(x=xmd[1], y=ymd[2], color=c, marker='s', s=60)
-    if c[2] == 1.0:
-        #list = np.unique((np.where(xa == max(xa)), np.where(ya == max(ya)), np.where(xa == min(xa)), np.where(ya == min(ya))))
-        sn = [i for i, s in enumerate(style.iloc) if 'seNorge' in s]
-        list = np.concatenate((list, sn))
-    else:
-        list = np.unique(np.where(ya == max(ya))) # Old models: print high precipitation only
 
+    # Print the model names
     for i in list:
         p = style.iloc[i].split('_', 2)
         s = '-'.join(p[0].split('-')[:2] + p[1:])
@@ -151,8 +146,6 @@ def test():
     df['TAS diff'] = df1['TAS celsius'] - df1['A'].map(df2.set_index('A')['B'])
 
 
-
-
 #norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
 
 periods = ('1951-2000', '2031-2060', '2071-2100')
@@ -165,15 +158,15 @@ def test_sample():
                 ('pr', '2031-2060', 'rcp45', 'pr', 'rcp45', '2031-2060')
 
     # load NetCDF file into variable
-    fpath = 'yseas%s_%s_%s_ens%s' % (args.type, periods[args.years], args.rcp, args.type)
-    tas_file = args.indir + '/ens%s/tas_%s.nc' % (args.type, fpath)
-    pr_file = args.indir + '/ens%s/pr_%s.nc' % (args.type, fpath)
+    fpath = 'yseas%s_%s_%s_ens%s' % (args.stat, periods[int(args.period)], 'rcp45', args.stat)
+    tas_file = args.indir + '/ens%s/tas_%s.nc' % (args.stat, fpath)
+    pr_file = args.indir + '/ens%s/pr_%s.nc' % (args.stat, fpath)
     nc_tas = nc4.Dataset(tas_file)
     nc_pr = nc4.Dataset(pr_file)
     print('loaded')
     return nc_tas, nc_pr
 
-def plot_var(rlat, rlon, var, fig, pos, type=1, res=30):
+def plot_geo_var(rlat, rlon, var, fig, pos, type=1, res=30):
     rotated_pole = ccrs.RotatedPole(pole_longitude=-162.0, pole_latitude=39.25)
     ax = fig.add_subplot(*pos, projection=rotated_pole)
     #ax.set_extent(norway_rotated_pole, crs=rotated_pole)
@@ -188,6 +181,7 @@ def plot_var(rlat, rlon, var, fig, pos, type=1, res=30):
 
 
 def geo_plot():
+    global periods, season_map
     nc_tas, nc_pr = test_sample()
     tas = nc_tas.variables['tas']
     pr = nc_pr.variables['pr']
@@ -200,8 +194,8 @@ def geo_plot():
     tas_data = np.swapaxes(tas, 0, 1).mean(axis=1) if s == 0 else tas[s, :, :]
     pr_data = np.swapaxes(pr, 0, 1).mean(axis=1) if s == 0 else pr[s, :, :]
 
-    plot_var(rlat, rlon, tas_data, fig, (1, 2, 1), type=1)
-    plot_var(rlat, rlon, pr_data, fig, (1, 2, 2), type=1)
+    plot_geo_var(rlat, rlon, tas_data, fig, (1, 2, 1), type=1)
+    plot_geo_var(rlat, rlon, pr_data, fig, (1, 2, 2), type=1)
     plt.show()
 
 
@@ -213,60 +207,73 @@ elif uname == 'CMR-PC-158': # Work
 else: # home
     inroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
 
+args = None
+
 def get_args():
     import argparse
+    global args
 
     parser = argparse.ArgumentParser()
     print('kss_plot - make plots for KSS Klima 2100')
     print('')
 
     parser.add_argument(
-        '-i', '--indir', default=inroot,
-        help='Input file directory'
+        '-p', '--plot', required=True,
+        help='Plot (diff, abs, geo)'
     )
     parser.add_argument(
-        '-o', '--outdir', default='../plots',
-        help='Output file directory'
+        '-t', '--period', required=True,
+        help='Time period (0: 1951-2000, 1: 2031-2060, 2: 2071-2100)'
+    )
+
+    parser.add_argument(
+        '-f', '--csvfile',
+        help='Input csv file'
+    )
+    parser.add_argument(
+        '-i', '--indir', default=inroot,
+        help='Input file directory'
     )
     parser.add_argument(
         '-s', '--season', default='ANN',
         help='Season to be plotted (ANN=default, MAM, JJA, SON, DJF)'
     )
     parser.add_argument(
-        '-y', '--years', default=0,
-        help='Year period (0=default: 1951-200, 1: 2031-2060, 2: 2071-2100)'
+        '-e', '--experiment',
+        help='Experiment (historical, rcp26, rcp45, rcp85)'
     )
     parser.add_argument(
         '-v', '--var', default='TAS diff',
-        help='Variable ()'
+        help='Variable (...)'
     )
     parser.add_argument(
         '-m', '--model', default='',
         help='Model ()'
     )
     parser.add_argument(
-        '--rcp', default='rcp45',
-        help='RCP (rcp26, default=rpc45, rpc85)'
+        '--stat', default='mean',
+        help='Statistics (mean=default, std)'
     )
     parser.add_argument(
-        '-t', '--type', default='mean',
-        help='Type of statistics (mean=default, std)'
-    )
-    parser.add_argument(
-        '-p', '--plot', required=True,
-        help='Plot type: (diff, abs, geo)'
+        '--overlaps', action='store_true',
+        help='Input file directory'
     )
     args = parser.parse_args()
-    return args
 
 
 ### MAIN ###
 
 if __name__ == '__main__':
-    args = get_args()
+    get_args()
+
+    csvfile = 'yseas%s_kss.csv' % args.stat
+    if args.overlaps:
+        csvfile = 'yseas%s_kss_overlaps.csv' % args.stat
+    #elif args.csvfile:
+    #    csvfile = args.csvfile if args.csvfile else 'yseas%s_kss.csv' % args.stat
 
     # Read dataset
-    df = pd.read_csv('yseas%s_kss.csv' % args.type, index_col=0, sep=';')
+    df = pd.read_csv(csvfile, index_col=0, sep=';')
 
     # Add full model column:
     models = df[df.columns[4:7]].apply(
@@ -284,8 +291,6 @@ if __name__ == '__main__':
         #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
         #sns.set(style='ticks')
         facetgrid_abs(df)
-    elif args.plot == 'abs2':
-        facetgrid_abs2(df)
     elif args.plot == 'diff':
         facetgrid_diff(df)
     plt.show()
