@@ -61,7 +61,7 @@ def find_period(d1, d2, periods):
 def make_ensemble_stats(inroot):
     for dd in glob.glob(os.path.join(inroot, 'yseasmean/*')):
         base = os.path.basename(dd)
-        for op in ('mean', 'std'):
+        for op in ('mean'):
             outdir = os.path.join(inroot, 'ens%s' % op)
             if not os.path.isdir(outdir):
                 os.makedirs(outdir)
@@ -183,6 +183,6 @@ if __name__ == '__main__':
         outroot = '/mnt/c/Dev/DATA/cordex-norway/stats_v3'
 
     #if stat_op == 'ensemble':
-    make_ensemble_stats(outroot)
+    #    make_ensemble_stats(outroot)
     #else:
-    #    make_stats(inroot, outroot, stat_op, periods)
+    make_stats(inroot, outroot, stat_op, periods)

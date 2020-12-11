@@ -62,10 +62,11 @@ def facetgrid_diff(df):
     g.fig.subplots_adjust(top=0.90, wspace=0.2)
     g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
     g.add_legend()
-    if not os.path.isdir('../plots'):
-        os.makedirs('../plots')
-    overlaps = '_overlaps' if args.overlaps else ''
-    g.savefig('../plots/facet_plot_diff_%s%s.png' % (args.season, overlaps))
+    if args.save:
+        if not os.path.isdir(args.outdir):
+            os.makedirs(args.outdir)
+        overlaps = '_overlaps' if args.overlaps else ''
+        g.savefig('%s/facet_plot_diff_%s%s.png' % (args.outdir, args.season, overlaps))
 
 
 def facetgrid_abs(df):
@@ -82,8 +83,11 @@ def facetgrid_abs(df):
     g.fig.suptitle('Nedbør og temperatur for fastlands-norge (absoluttverdier)', fontsize=16, y=1.0)
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     g.add_legend()
-    overlaps = '_overlaps' if args.overlaps else ''
-    g.savefig('../plots/facet_plot_abs_%s%s.png' % (args.season, overlaps))
+    if args.save:
+        if not os.path.isdir(args.outdir):
+            os.makedirs(args.outdir)
+        overlaps = '_overlaps' if args.overlaps else ''
+        g.savefig('%s/facet_plot_abs_%s%s.png' % (args.outdir, args.season, overlaps))
 
 
 def get_extreme_values(xa, ya):
@@ -206,6 +210,7 @@ elif uname == 'CMR-PC-158': # Work
     inroot = 'D:/Data/EUR-11_norway/stats_v3'
 else: # home
     inroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
+outroot = '../plots'
 
 args = None
 
@@ -235,6 +240,11 @@ def get_args():
         help='Input file directory'
     )
     parser.add_argument(
+        '-o', '--outdir', default=outroot,
+        help='Output file directory'
+    )
+
+    parser.add_argument(
         '-s', '--season', default='ANN',
         help='Season to be plotted (ANN=default, MAM, JJA, SON, DJF)'
     )
@@ -253,6 +263,10 @@ def get_args():
     parser.add_argument(
         '--stat', default='mean',
         help='Statistics (mean=default, std)'
+    )
+    parser.add_argument(
+        '--save', action='store_true',
+        help='Save plot image'
     )
     parser.add_argument(
         '--overlaps', action='store_true',
