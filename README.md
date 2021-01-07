@@ -34,3 +34,5 @@ e.g. standard deviation, that will show at which regions in norway where the spr
 Also bar-charts that show median, 10, 90 percentile min-max for each of 52 members and variable (pr, tas)
 
 Plots will be saved in the KSS/plots folder, but the file names must be revised.
+
+Shared some info on GITHUB.
