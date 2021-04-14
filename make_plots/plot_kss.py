@@ -43,6 +43,8 @@ def barchart(df):
     df = df[df.Experiment == 'rcp45']
     sns.set(style="whitegrid")
     ax = sns.barplot(x="TAS diff", y="Full Model", data=df)
+    ax.set(xlabel='TAS diff: ' + args.season + ', ' + periods[int(args.period)], ylabel='Models common scenarios: ' + args.experiment)
+    plt.tight_layout()
 
 
 def facetgrid_diff(df):
@@ -56,7 +58,7 @@ def facetgrid_diff(df):
     g = sns.FacetGrid(df, col='Experiment',
                           row='Period',
                           hue='Previous Study', palette='bright', height=10, aspect=0.5,
-                          legend_out=False, despine=True, sharex=False, sharey=False) #
+                          legend_out=False, despine=False, sharex=False, sharey=False) #
     g.fig.suptitle('Nedbør- og temperatur-endring: %s' % args.season, fontsize=16, y=0.98)
     g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Full Model') # , markers=markers, style='Previous Study')
     g.fig.subplots_adjust(top=0.90, wspace=0.2)
@@ -79,7 +81,7 @@ def facetgrid_abs(df):
                           legend_out=False, despine=True, sharex=False, sharey=False)
     #g.map_dataframe(sns.scatterplot, x='TAS celsius', y='PR mm.year')
     g.map(scatterplot_func, 'TAS celsius', 'PR mm.year', 'Full Model') # , markers=markers, style='Previous Study')
-    g.fig.subplots_adjust(top=0.91, left=0.04, bottom=0.07)
+    g.fig.subplots_adjust(top=0.91, left=0.04, bottom=0.07, hspace=1.5)
     g.fig.suptitle('Nedbør og temperatur for fastlands-norge (absoluttverdier)', fontsize=16, y=1.0)
     g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
     g.add_legend()
