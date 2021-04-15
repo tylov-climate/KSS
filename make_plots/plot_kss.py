@@ -38,12 +38,12 @@ import cartopy.feature as cpf
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
 
 def barchart(df):
-    df = df[df['Previous Study'] == False]
     df = df[df.Season == args.season]
+    df = df[df.Period == periods[int(args.period)]]
     df = df[df.Experiment == 'rcp45']
     sns.set(style="whitegrid")
     ax = sns.barplot(x="TAS diff", y="Full Model", data=df)
-    ax.set(xlabel='TAS diff: ' + args.season + ', ' + periods[int(args.period)], ylabel='Models common scenarios: ' + args.experiment)
+    ax.set(xlabel='TAS diff: ' + args.season + ', ' + periods[int(args.period)], ylabel='Models w/common scen. Shows RCP4.5')
     plt.tight_layout()
 
 
