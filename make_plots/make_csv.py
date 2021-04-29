@@ -30,6 +30,16 @@ last_study_models = [
     'MOHC-HadGEM2-ES_RCA4_r1i1p1'
 ]
 
+overlaps_models = {
+    #'CNRM-CM5': ['ALADIN_r1i1p1', 'ALARO_r1i1p1', 'RACMO_r1i1p1'],
+    'CNRM-CM5': ['ALADIN63_r1i1p1', 'RACMO_r1i1p1'],
+    'EC-EARTH': ['CCLM_r12i1p1', 'HIRHAM5_r3i1p1', 'RACMO_r12i1p1', 'RCA_r12i1p1', 'REMO_r12i1p1'],
+    'HadGEM2-ES': ['HIRHAM5_r1i1p1', 'RACMO_r1i1p1', 'RCA_r1i1p1', 'REMO_r1i1p1'],
+    'MPI-ESM-LR': ['CCLM_r1i1p1', 'RCA_r1i1p1', 'REMO_r1i1p1', 'REMO_r2i1p1'],
+    'NorESM1-M': ['RCA_r1i1p1', 'REMO_r1i1p1']
+}
+
+
 
 def load_mask():
     img = mpimg.imread('norway_mask.png')
@@ -48,7 +58,7 @@ def average_data(inroot, output, version):
         dirpattern = '/*'
         seasons = ('FULL', 'MAM', 'JJA', 'SON', 'DJF')
 
-    print(inroot, output, version)
+    #print(inroot, output, version)
 
     for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
@@ -128,7 +138,7 @@ def average_data(inroot, output, version):
                             stats[d[0][season]][d[1][exp_name]][d[2][stat_op]][d[3][var_id]][d[4][model_name]] = value
                             if var_id == 'pr':
                                 value *= 365.25 * 24 * 60 * 60
-                            print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value) # , value_unmasked)
+                            #print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value) # , value_unmasked)
                             n += 1
     return stats, dims
 
@@ -146,15 +156,6 @@ def create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=False):
          'TAS diff': [], 'PR diff': [],
          }
 
-    overlaps = {
-        'CNRM-CM5': ['ALADIN', 'ALARO', 'HIRHAM5', 'REMO'],
-        'EC-EARTH': ['CCLM', 'COSMO-crCLIM', 'HIRHAM5', 'RCA', 'REMO'],
-        'HadGEM2-ES': ['COSMO-crCLIM', 'HIRHAM5', 'RCA'],
-        'IPSL-CM5A-MR': ['REMO'],
-        'MPI-ESM-LR': ['RCA', 'REMO'],
-        'NorESM1-M': ['RCA', 'REMO']
-    }
-
     pr_fac = 365.25 * 24 * 60 * 60
 
     for season in dims['seasons']:
@@ -167,13 +168,16 @@ def create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=False):
 
                 if use_rcp_overlaps:
                     match = False
-                    for key, val in overlaps.items():
+                    for key, val in overlaps_models.items():
                         if match: break
                         if model[1].endswith(key):           # 'Model' in csv
                             for mod in val:
-                                if model[3].startswith(mod): # 'Model Id' in csv
+                                mid, ens = mod.split('_')
+                                if model[3].startswith(mid) and model[2] == ens: # 'Model Id' and 'Ensemble' in csv
                                     match = True
-                                    #print("MATCH: ", key, ':', model[3])
+                                    print('MATCH: ', key, ':', mid, ens, ':', model[3], model[2])
+                                    if ens != model[2]:
+                                        print('Wrong ensemble match:', model[1], model[3], model[2], '!=', ens)
                                     break
                     if not match:
                         continue
