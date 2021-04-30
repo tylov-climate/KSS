@@ -40,10 +40,13 @@ markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P',
 def barchart(df):
     df = df[df.Season == args.season]
     df = df[df.Period == periods[int(args.period)]]
-    df = df[df.Experiment == 'rcp45']
+    df = df[df.Experiment == 'rcp85']
+    df = df.sort_values('Model')
     sns.set(style="whitegrid")
-    ax = sns.barplot(x="TAS diff", y="Full Model", data=df)
-    ax.set(xlabel='TAS diff: ' + args.season + ', ' + periods[int(args.period)], ylabel='Models w/common scen. Shows RCP4.5')
+    ax = sns.barplot(x="PR diff", y="Full Model", data=df)
+    #ax.set(xlabel='TAS diff: ' + args.season + ', ' + periods[int(args.period)], ylabel='Models w/common scen. Shows RCP8.5')
+    ax.set_xlabel('TAS diff: ' + args.season + ', ' + periods[int(args.period)], fontsize=3) 
+    ax.set_ylabel('Models w/common scen. Shows RCP8.5')
     plt.tight_layout()
 
 
@@ -283,8 +286,8 @@ if __name__ == '__main__':
     get_args()
 
     csvfile = 'yseas%s_kss.csv' % args.stat
-    if args.overlaps:
-        csvfile = 'yseas%s_kss_overlaps.csv' % args.stat
+    #if args.overlaps:
+    #    csvfile = 'yseas%s_kss_overlaps.csv' % args.stat
     #elif args.csvfile:
     #    csvfile = args.csvfile if args.csvfile else 'yseas%s_kss.csv' % args.stat
 
