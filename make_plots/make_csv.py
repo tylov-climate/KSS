@@ -49,25 +49,16 @@ def load_mask():
 
 # Save load mean of the statistical data over periods and seasons. (avg, variance, ...)
 
-def average_data(inroot, output, version):
-    seasons, exps, stat_ops, variables, models = [], [], [], [], []
-    if version == 2:
-        dirpattern = '/*/*'
-        seasons = ('FULL', 'MAM', 'JJA', 'SON', 'DJF')
-    elif version == 3:
-        dirpattern = '/*'
-        seasons = ('FULL', 'MAM', 'JJA', 'SON', 'DJF')
-
-    #print(inroot, output, version)
+def average_data(inroot, output):
+    seasons, exps, stat_ops, variables, models = ('ANN', 'MAM', 'JJA', 'SON', 'DJF'), [], [], [], []
+    dirpattern = '/*'
+    #print(inroot, output)
 
     for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
-            if version == 2:
-                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, stat_op, season, period = f[:-3].split('_')
-            elif version == 3:
-                var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period = f[:-3].split('_')
-                season = 'all'
+            var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period = f[:-3].split('_')
+            season = 'all'
 
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
@@ -108,16 +99,13 @@ def average_data(inroot, output, version):
     for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
-            if version == 2:
-                domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, freq_id, var_id, create_ver_id, stat_op, season, period = f[:-3].split('_')
-            elif version == 3:
-                var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period = f[:-3].split('_')
-                season = 'all'
+            var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period = f[:-3].split('_')
+            season = 'all'
             #print(var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period)
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
 
-            season_all = ('DJF', 'MAM', 'JJA', 'SON', 'FULL') if version == 3 else (season,)
+            season_all = ('DJF', 'MAM', 'JJA', 'SON', 'ANN')
 
             with nc4.Dataset(path) as src:
                 for ncvname, ncvar in src.variables.items():
@@ -125,11 +113,9 @@ def average_data(inroot, output, version):
                         data_all = ncvar[:]
                         season_n = 0
                         for season in season_all:
-                            if version == 3:
-                                data = np.swapaxes(data_all, 0, 1).mean(axis=1) if season == 'FULL' else data_all[season_n]
-                                season_n += 1
-                            else:
-                                data = data_all
+                            data = np.swapaxes(data_all, 0, 1).mean(axis=1) if season == 'ANN' else data_all[season_n]
+                            season_n += 1
+
                             #value_unmasked = np.mean(data)
                             data = np.ma.masked_array(data, mask=mask_img) # Mask is with Norway shape file.
                             value = np.mean(data)
@@ -145,21 +131,16 @@ def average_data(inroot, output, version):
 
 def create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=False):
     d = dims['inv']
-    season_ren = {'full': 'ANN', 's1': 'MAM', 's2': 'JJA', 's3': 'SON', 's4': 'DJF',
-                  'FULL': 'ANN', 'MAM': 'MAM', 'JJA': 'JJA', 'SON': 'SON', 'DJF': 'DJF'}
-
     m = {'Season': [], 'Experiment': [], 'Period': [],
          'Institute': [], 'Model': [], 'Model Id': [], 'Ensemble': [], 'RCM Ver': [],
          'TAS celsius': [], 'PR mm.year': [],
-         #'TAS': [], 'PR': [],
-         #'TAS variance': [], 'PR variance': [],
          'TAS diff': [], 'PR diff': [],
-         }
+    }
 
     pr_fac = 365.25 * 24 * 60 * 60
 
     for season in dims['seasons']:
-        season_disp = season_ren[season]
+        #season_disp = season_ren[season]
         for exp_name in dims['exps']:
             exp_disp = exp_name.split('_')
             for model_name in dims['models']: # institute_id, model_sign, ensemble_id, source_id, rcm_version
@@ -175,7 +156,7 @@ def create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=False):
                                 mid, ens = mod.split('_')
                                 if model[3].startswith(mid) and model[2] == ens: # 'Model Id' and 'Ensemble' in csv
                                     match = True
-                                    print('MATCH: ', key, ':', mid, ens, ':', model[3], model[2])
+                                    #print('MATCH: ', key, ':', mid, ens, ':', model[3], model[2])
                                     if ens != model[2]:
                                         print('Wrong ensemble match:', model[1], model[3], model[2], '!=', ens)
                                     break
@@ -191,8 +172,8 @@ def create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=False):
                 #tas_variance = stats[s][x][d[2]['timvar']][d[3]['tas']][n]
                 #pr_variance = stats[s][x][d[2]['timvar']][d[3]['pr']][n]
                 if not (math.isnan(tas_mean) and math.isnan(pr_mean)):
-                    #print(season_disp, exp_disp[0], exp_disp[1], model_name, tas_mean, pr_mean)
-                    m['Season'].append(season_disp)
+                    #print(season, exp_disp[0], exp_disp[1], model_name, tas_mean, pr_mean)
+                    m['Season'].append(season)
                     m['Experiment'].append(exp_disp[0])
                     m['Period'].append(exp_disp[1])
                     m['Institute'].append(model[0])
@@ -227,43 +208,69 @@ def create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=False):
     return df
 
 
+
+def parse_args():
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    print('make_csv - make csv input files for KSS Klima 2100')
+    print('')
+
+    parser.add_argument(
+        '--stat', default='mean',
+        help='Statistics (mean=default, min, max)'
+    )
+
+    parser.add_argument(
+        '-f', '--csvfile',
+        help='Input csv file'
+    )
+    parser.add_argument(
+        '-i', '--indir', default=None,
+        help='Input file directory'
+    )
+    parser.add_argument(
+        '-o', '--outdir', default=None,
+        help='Output file directory'
+    )
+    parser.add_argument(
+        '--overlaps', action='store_true',
+        help='Input file directory'
+    )
+    return parser.parse_args()
+
+
+
 ### MAIN ###
 
 if __name__ == '__main__':
     uname = platform.uname()[1]
-    version = 3
-    stat_op = 'yseasmean'
-    sub_path = stat_op
-    if len(sys.argv) == 1:
-        print('Usage: %s mean|std|...' % sys.argv[0])
-        exit()
-    else:
-        if sys.argv[1] == '2':
-            stat_op = 'tim%s' % sys.argv[1]
-            sub_path = ''
-            version = 2
-        else:
-            stat_op = 'yseas%s' % sys.argv[1]
-            sub_path = stat_op
 
-    if '-tos' in uname: # NIRD or similar
-        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v%d/%s' % (version, sub_path)
+    args = parse_args()
+
+    stat_op = 'yseas%s' % args.stat
+    sub_path = stat_op
+
+    if args.indir:
+        inroot = args.indir
+    elif '-tos' in uname: # NIRD or similar
+        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3/%s' % sub_path
     elif uname == 'CMR-PC-158': # Work
-        inroot = 'D:/Data/EUR-11_norway/stats_v%d/%s' % (version, sub_path)
+        inroot = 'D:/Data/EUR-11_norway/stats_v3/%s' % sub_path
     else: # home
-        inroot = 'C:/Dev/DATA/cordex-norway/stats_v%d/%s' % (version, sub_path)
+        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % sub_path
     file = '%s_kss' % stat_op
 
     if False: # os.path.exists(file + '.pkl'):
         #df = pd.read_pickle(file + '.pkl')
         df = pd.read_csv(file + '.csv', sep=';')
     else:
-        stats, dims = average_data(inroot, file, version)
+        stats, dims = average_data(inroot, file)
         print(stats.shape)
         print(dims['seasons'])
         print(dims['exps'])
         print(dims['stat_ops'])
         print(dims['variables'])
-        df = create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=True)
+        df = create_dataframe(stats, dims, file, stat_op, args.overlaps)
     print(df)
 

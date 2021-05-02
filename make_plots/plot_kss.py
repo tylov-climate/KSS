@@ -38,7 +38,7 @@ import cartopy.feature as cpf
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
 periods = ('1951-2000', '2031-2060', '2071-2100')
 season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
-#norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
+norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
 
 
 def catplot1(df):
@@ -77,16 +77,16 @@ def barplot(df):
     df = df[df.Season == args.season]
     df = df[df.Period == periods[period]]
     df = df[df.Experiment == experiment]
-    df = df[df.FullModel != 'MIROC-MIROC5_WRF361H_r1i1p1']
+    #df = df[df.FullModel != 'MIROC-MIROC5_WRF361H_r1i1p1']
     df = df.sort_values('FullModel')
     sns.set(style='whitegrid')
     sns.set(rc={'figure.figsize':(11, 9.6)})
     ax = sns.barplot(data=df, x=args.var, y='FullModel') # orient='h'
-    ax.set_xlabel(args.var + ': ' + args.season + ', ' + periods[period]) #, fontsize=12)
+    ax.set_xlabel('Variable ' + args.var + ': ' + args.season + ', ' + periods[period] + ', ' + experiment) #, fontsize=12)
     if args.overlaps:
-        ax.set_ylabel('Models with all 3 scenarios. %s' % experiment)
+        ax.set_ylabel('Euro-CORDEX-11: Selected models with all 3 scenarios')
     else:
-        ax.set_ylabel('Models, scenario %s' % experiment)
+        ax.set_ylabel('Euro-CORDEX-11: All models')
     ax.set_yticklabels(ax.get_yticklabels(), fontsize=6)
     ax.set_xticklabels(ax.get_xticks(), fontsize=10)
     plt.tight_layout()
@@ -185,17 +185,6 @@ def scatterplot_func(x, y, style, **kwargs):
         ax.text(xa[i], ya[i], s, size='small') # , horizontalalignment='center', size='medium', color='black', weight='semibold')
 
 
-def test_groupby():
-    sns.set(style='ticks')
-    exercise = sns.load_dataset('exercise')
-    print(exercise)
-    df1 = exercise.groupby(['time','kind'])['pulse'].agg(['mean', 'std']).reset_index()
-    print (df1)
-    #g = sns.factorplot(x='time', y='pulse', hue='kind', data=exercise)
-    df2 = None
-    df['TAS diff'] = df1['TAS celsius'] - df1['A'].map(df2.set_index('A')['B'])
-
-
 def test_sample():
     data_file_tas = '%s_yseasmean_%s_%s/%s_EUR-11_CNRM_CNRM-CERFACS-CNRM-CM5_%s_r1i1p1_ALADIN63_v2_yseasmean_v20190828_%s.nc' % \
                 ('tas', '2031-2060', 'rcp45', 'tas', 'rcp45', '2031-2060')
@@ -212,7 +201,7 @@ def test_sample():
     return nc_tas, nc_pr
 
 
-def test_sample():
+def load_geo():
     data_file_tas = '%s_yseasmean_%s_%s/%s_EUR-11_CNRM_CNRM-CERFACS-CNRM-CM5_%s_r1i1p1_ALADIN63_v2_yseasmean_v20190828_%s.nc' % \
                 ('tas', '2031-2060', 'rcp45', 'tas', 'rcp45', '2031-2060')
     data_file_pr = '%s_yseasmean_%s_%s/%s_EUR-11_CNRM_CNRM-CERFACS-CNRM-CM5_%s_r1i1p1_ALADIN63_v2_yseasmean_v20190828_%s.nc' % \
@@ -228,17 +217,20 @@ def test_sample():
     return nc_tas, nc_pr
 
 
-def plot_geo_var(rlat, rlon, var, fig, pos, type=1, res=30):
+def plot_geo_var(rlat, rlon, var, fig, pos, title, type=1, res=30):
     rotated_pole = ccrs.RotatedPole(pole_longitude=-162.0, pole_latitude=39.25)
-    ax = fig.add_subplot(*pos, projection=rotated_pole)
-    #ax.set_extent(norway_rotated_pole, crs=rotated_pole)
+    ax = fig.add_subplot(pos, projection=rotated_pole)
     ax.add_feature(cpf.OCEAN)
     ax.add_feature(cpf.COASTLINE)
     ax.add_feature(cpf.BORDERS, linestyle=':')
+    ax.set_title(title)
+
     if type == 1:
         plt.contourf(rlon, rlat, var, res, transform=rotated_pole)
     if type == 2:
+        ax.set_extent(norway_rotated_pole, crs=rotated_pole)
         plt.pcolormesh(rlon, rlat, var, transform=rotated_pole)
+    #ax.add_legend()    
     return ax
 
 
@@ -256,9 +248,31 @@ def geoplot():
     tas_data = np.swapaxes(tas, 0, 1).mean(axis=1) if s == 0 else tas[s, :, :]
     pr_data = np.swapaxes(pr, 0, 1).mean(axis=1) if s == 0 else pr[s, :, :]
 
-    plot_geo_var(rlat, rlon, tas_data, fig, (1, 2, 1), type=1)
-    plot_geo_var(rlat, rlon, pr_data, fig, (1, 2, 2), type=1)
+    fig.text(0.5, 0.04, 'common xlabel', ha='center', va='center')
+    #fig.text(0.06, 0.5, 'common ylabel', ha='center', va='center', rotation='vertical')
+
+    ax = fig.add_subplot(111)    # The big subplot
+    ax.spines['top'].set_color('none')
+    ax.spines['bottom'].set_color('none')
+    ax.spines['left'].set_color('none')
+    ax.spines['right'].set_color('none')
+    ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
+
+    plot_geo_var(rlat, rlon, tas_data, fig, 121, "hello")
+    plot_geo_var(rlat, rlon, pr_data, fig, 122, "goodbye")
+    plt.tight_layout()
     plt.show()
+
+
+def test_groupby():
+    sns.set(style='ticks')
+    exercise = sns.load_dataset('exercise')
+    print(exercise)
+    df1 = exercise.groupby(['time','kind'])['pulse'].agg(['mean', 'std']).reset_index()
+    print (df1)
+    #g = sns.factorplot(x='time', y='pulse', hue='kind', data=exercise)
+    df2 = None
+    df['TAS diff'] = df1['TAS celsius'] - df1['A'].map(df2.set_index('A')['B'])
 
 
 uname = platform.uname()[1]
