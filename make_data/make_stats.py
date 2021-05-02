@@ -10,6 +10,7 @@ import datetime as dt
 from dateutil.relativedelta import relativedelta
 import netCDF4 as nc4
 import uuid
+import shutil
 
 '''
  :institution = "Helmholtz-Zentrum Geesthacht, Climate Service Center, Max Planck Institute for Meteorology" ;
@@ -90,16 +91,21 @@ def make_ensemble_stats(inroot, stat_op):
             arr = base.split('_')
             if arr[3] == 'histo':
                 continue
-            print('computing diff:', ff)
+            var = arr[0]
             fhist = os.path.join(os.path.dirname(ff), '_'.join((arr[0], arr[1], '1951-2000_histo', arr[4])))
-            outfile = os.path.join(inroot, 'ensdiff', '_'.join((arr[0], 'ensdiff', arr[2], arr[3])) + '.nc')
+            outdir = os.path.join(inroot, 'ensdiff')
+            outfile = os.path.join(outdir, base.replace('.nc', '_diff.nc'))
+            print('computing diff:', outfile)
 
-            nc = nc4.Dataset(ff, 'r+')
+            os.makedirs(outdir, exist_ok=True)
+            shutil.copyfile(ff, outfile)
+            nc = nc4.Dataset(outfile, 'r+')
             nc_hist = nc4.Dataset(fhist)
-            var = 100 * (nc.variables[arr[0]][:] - nc_hist.variables[arr[0]][:])
-            if arr[0] == 'pr':
-                var /= nc_hist.variables[arr[0]][:]
-            nc[arr[0]][:] = var
+            if var == 'tas':
+                data = nc.variables[var][:] - nc_hist.variables[var][:]
+            if var == 'pr':
+                data = 100 * (nc.variables[var][:] - nc_hist.variables[var][:]) / nc_hist.variables[var][:]
+            nc[var][:] = data
             nc.close()
 
 
