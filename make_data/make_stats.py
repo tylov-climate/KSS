@@ -190,4 +190,3 @@ if __name__ == '__main__':
         make_ensemble_stats(outroot, stat_op)
     else:
     	make_stats(inroot, outroot, stat_op, periods)
-
