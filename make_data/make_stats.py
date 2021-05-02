@@ -66,17 +66,23 @@ def make_ensemble_stats(inroot, stat_op):
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
         outfile = os.path.join(outdir, base + '_ens%s.nc' % op)
+        print('input:', dd, ', output:', outfile)
+        
         if os.path.isfile(outfile):
             print(outfile, '    ...exists')
             #return
         if base[:3] == 'pr_':
-            cmd1 = 'cdo -O ens%s -chunit,"kg m-2 s-1","mm year-1" %s/*.nc %s' % (op, dd, 'tmp.nc')
-            cmd2 = 'ncap2 -O -s "pr=31557600*pr" %s %s' % ('tmp.nc', outfile)
+            cmd1 = 'cdo -O ens%s %s/*.nc %s' % (op, dd, 'tmp1.nc')
+            cmd2 = 'cdo -O setattribute,pr@units="mm year-1" %s %s' % ('tmp1.nc', 'tmp2.nc')
+            cmd3 = 'ncap2 -O -s "pr=31557600*pr" %s %s' % ('tmp2.nc', outfile)
             ret = os.system(cmd1)
             ret = os.system(cmd2)
-        else:
+            ret = os.system(cmd3)
+        elif base[:4] == 'tas_':
             cmd1 = 'cdo -O ens%s %s/*.nc %s' % (op, dd, outfile)
             ret = os.system(cmd1)
+        else:
+            print('skipping %s folder...' % dd)
 
     if True:
         for ff in glob.glob(os.path.join(inroot, 'ens%s/*.nc' % op)):
