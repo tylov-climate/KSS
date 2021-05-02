@@ -58,25 +58,28 @@ def find_period(d1, d2, periods):
     return -1
 
 
-def make_ensemble_stats(inroot):
-    for dd in glob.glob(os.path.join(inroot, 'yseasmean/*')):
+def make_ensemble_stats(inroot, stat_op):
+    op = stat_op.split('-')[1]
+    for dd in glob.glob(os.path.join(inroot, 'yseas%s/*' % op)):
         base = os.path.basename(dd)
-        for op in ('mean'):
-            outdir = os.path.join(inroot, 'ens%s' % op)
-            if not os.path.isdir(outdir):
-                os.makedirs(outdir)
-            outfile = os.path.join(outdir, base + '_ens%s.nc' % op)
-            if os.path.isfile(outfile):
-                print(outfile, '    ...exists')
-                #return
-            if base[:3] == 'pr_':
-                ret = os.system('cdo -O ens%s -chunit,"kg m-2 s-1","mm year-1" %s/*.nc %s' % (op, dd, 'tmp.nc'))
-                ret = os.system('ncap2 -O -s "pr=31557600*pr" %s %s' % ('tmp.nc', outfile))
-            else:
-                ret = os.system("cdo -O ens%s %s/*.nc %s" % (op, dd, outfile))
+        outdir = os.path.join(inroot, 'ens%s' % op)
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
+        outfile = os.path.join(outdir, base + '_ens%s.nc' % op)
+        if os.path.isfile(outfile):
+            print(outfile, '    ...exists')
+            #return
+        if base[:3] == 'pr_':
+            cmd1 = 'cdo -O ens%s -chunit,"kg m-2 s-1","mm year-1" %s/*.nc %s' % (op, dd, 'tmp.nc')
+            cmd2 = 'ncap2 -O -s "pr=31557600*pr" %s %s' % ('tmp.nc', outfile)
+            ret = os.system(cmd1)
+            ret = os.system(cmd2)
+        else:
+            cmd1 = 'cdo -O ens%s %s/*.nc %s' % (op, dd, outfile)
+            ret = os.system(cmd1)
 
     if True:
-        for ff in glob.glob(os.path.join(inroot, 'ensmean/*.nc')):
+        for ff in glob.glob(os.path.join(inroot, 'ens%s/*.nc' % op)):
             base = os.path.basename(ff)
             arr = base.split('_')
             if arr[3] == 'histo':
@@ -161,14 +164,15 @@ def make_stats(inroot, outroot, stat_op, periods=((1951, 2000), (2031, 2060), (2
 
 if __name__ == '__main__':
     periods = ((1951, 2000), (2031, 2060), (2071, 2100))
-    stat_ops = {'mean': 1, 'avg': 2, 'var': 3, 'std': 4, 'min': 5, 'max': 6, 'range': 7, 'ensemble': 8}
+    #stat_ops = {'mean': 1, 'avg': 2, 'var': 3, 'std': 4, 'min': 5, 'max': 6, 'range': 7, 
+    stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'ens-mean': 4, 'ens-min': 5, 'ens-max': 6}
     try:
         stat_op = sys.argv[1]
         n = stat_ops[stat_op]
         if len(sys.argv) > 3:
             periods = [(int(sys.argv[i]), int(sys.argv[i+1])) for i in range(2, len(sys.argv), 2)]
     except:
-        print('Usage: make_stats {mean|avg|var|std|min|max|range} [intervals]')
+        print('Usage: make_stats {mean | min | max | ens-mean | ens-min | ens-max} [intervals]')
         exit()
 
     uname = platform.uname()
@@ -182,7 +186,8 @@ if __name__ == '__main__':
         inroot = '/mnt/j/DATA/EUR-11'
         outroot = '/mnt/c/Dev/DATA/cordex-norway/stats_v3'
 
-    #if stat_op == 'ensemble':
-    #    make_ensemble_stats(outroot)
-    #else:
-    make_stats(inroot, outroot, stat_op, periods)
+    if stat_op.startswith('ens-'):
+        make_ensemble_stats(outroot, stat_op)
+    else:
+    	make_stats(inroot, outroot, stat_op, periods)
+
