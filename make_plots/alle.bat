@@ -24,11 +24,11 @@ for %%v in ("TAS diff" "PR diff") do (
     )
     for %%t in (1 2) do (
         echo GEO DIFF %%v %%t
-        python plot_kss.py -p geo -v %%v -t %%t -s %%s %save%
+        python plot_kss.py -p geo -v %%v -t %%t %save%
     )
     for %%t in (0 1 2) do (
         echo GEO ABS %%v %%t
-        python plot_kss.py -p geo -v %%v -t %%t -s %%s --abs %save%
+        python plot_kss.py -p geo -v %%v -t %%t --abs %save%
     )    
 )
 

@@ -55,7 +55,7 @@ def catplot1(df):
     g.add_legend()
     plt.tight_layout()
     if args.save:
-        save_plot(g, "catplot2", variable)
+        save_plot(g, "catplot1", variable)
        
 
 def catplot2(df):
