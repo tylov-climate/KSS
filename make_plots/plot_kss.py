@@ -247,7 +247,7 @@ def geoplot_sub(rlat, rlon, var, fig, pos, title, type=1, res=30):
         res = plt.contourf(rlon, rlat, var, res, transform=rotated_pole)
     if type == 2:
         ax.set_extent(norway_rotated_pole, crs=rotated_pole)
-        plt.pcolormesh(rlon, rlat, var, transform=rotated_pole)
+        res = plt.pcolormesh(rlon, rlat, var, transform=rotated_pole)
     return res
 
 
@@ -257,7 +257,7 @@ def save_plot(g, plotname, varname=''):
     varname = varname.replace(' ', '-')
     os.makedirs(args.outdir, exist_ok=True)
     overlaps = '_overlaps' if args.overlaps else ''
-    g.savefig('%s/%s_%s_%s_period%d_%s%s.png' % (args.outdir, plotname, varname, args.season, period, experiment, overlaps))
+    g.savefig('%s/eur11_%s%s_%s_period%d_%s_%s.png' % (args.outdir, plotname, overlaps, varname, period, args.season, experiment))
 
 
 #def test_groupby():
