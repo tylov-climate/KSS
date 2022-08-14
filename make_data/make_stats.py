@@ -111,8 +111,12 @@ def make_ensemble_stats(inroot, stat_op):
             nc.close()
 
 
+# hist => 2005
+# rcp4.5 start 2006
 
-def make_stats(inroot, outroot, stat_op, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
+#def make_stats(inroot, outroot, stat_op, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
+def make_stats(inroot, outroot, stat_op, periods=((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100))):
+
     print(inroot)
     if inroot[-1] != '/':
         inroot += '/'

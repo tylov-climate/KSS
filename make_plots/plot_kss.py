@@ -30,9 +30,9 @@ import netCDF4 as nc4
 import platform
 import matplotlib.pyplot as plt
 import seaborn as sns
-import cartopy
-import cartopy.crs as ccrs
-import cartopy.feature as cpf
+#import cartopy
+#import cartopy.crs as ccrs
+#import cartopy.feature as cpf
 
 
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
@@ -234,7 +234,7 @@ def geoplot_load(varname, diff=True):
     nc_data = nc4.Dataset(file)
     return nc_data
 
-
+"""
 def geoplot_sub(rlat, rlon, var, fig, pos, title, type=1, res=30):
     rotated_pole = ccrs.RotatedPole(pole_longitude=-162.0, pole_latitude=39.25)
     ax = fig.add_subplot(pos, projection=rotated_pole)
@@ -249,7 +249,7 @@ def geoplot_sub(rlat, rlon, var, fig, pos, title, type=1, res=30):
         ax.set_extent(norway_rotated_pole, crs=rotated_pole)
         res = plt.pcolormesh(rlon, rlat, var, transform=rotated_pole)
     return res
-
+"""
 
 
 def save_plot(g, plotname, varname=''):
@@ -274,6 +274,8 @@ def save_plot(g, plotname, varname=''):
 uname = platform.uname()[1]
 if '-tos' in uname: # NIRD or similar
     inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3'
+elif 'ppi-ext' in uname: # met.no
+    inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
 elif uname == 'CMR-PC-158': # Work
     inroot = 'D:/Data/EUR-11_norway/stats_v3'
 else: # home
