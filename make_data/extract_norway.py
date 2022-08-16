@@ -6,6 +6,7 @@ import os
 import sys
 import glob
 import cartopy
+import shutil
 
 # EUR-11 Cordex data.
 
@@ -73,25 +74,25 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
                     outdir = os.path.join(outroot, subpath)
                     outfile = os.path.join(outdir, f)
                     if not os.path.isfile(outfile):
-                        # Crop bounding box of Norway with computed bounding box
-                        #ret = os.system('ncks -d rlon,%f,%f -d rlat,%f,%f %s -O %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
                         print('Path:', subpath, file=sys.stderr)
                         print('     ', f, file=sys.stderr)
                         # Crop bounding box of Norway with accurate fixed pixels (integer args are interpreted as pixels, not lon,lat values!)
-                        ret = os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
+                        #ret = os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
+                        ret = os.system('cdo selindexbox,%d,%d,%d,%d %s %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
+                        print("ret is", ret)
                         if ret != 0:
+                            print('cdo remapbil,griddes.txt %s %s' % (infile, 'tmp.nc'))
                             # Probably not "standard" rotated_pole 412x424 grid, so try with combined bi-linear remapping and crop instead:
                             ret = os.system('cdo remapbil,griddes.txt %s %s' % (infile, 'tmp.nc'))
 
                         if ret == 0:
                             if not os.path.isdir(outdir):
                                 os.makedirs(outdir)
-                            os.rename('tmp.nc', outfile)
+                            shutil.move('tmp.nc', outfile)
                         else:
                             print('Result:', ret, file=sys.stderr)
                     else:
                         pass
-                        #print('Exists')
 
 def sample_test():
     proj = Projection()
@@ -115,5 +116,7 @@ if __name__ == '__main__':
     #    print('give model group name')
     #    exit()
     #group = sys.argv[1]
-    crop_cordex_eur11_to_norway(inroot='/tos-project4/NS9076K/data/cordex/output/EUR-11',
-                                outroot='/tos-project4/NS9076K/data/cordex-norway/EUR-11')
+    inroot="/lustre/storeC-ext/users/kin2100/MET/cordex/output/EUR-11"
+    outroot="/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11"
+
+    crop_cordex_eur11_to_norway(inroot, outroot)

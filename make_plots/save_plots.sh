@@ -5,6 +5,7 @@ save=--save
 
 for v in "TAS diff" "PR diff"
 do
+: <<'END'
     for s in ANN MAM JJA SON DJF
     do
         for t in 1 2
@@ -26,6 +27,7 @@ do
             python plot_kss.py -p cat2 -v "$v" -t $t -s $s --abs $save
         done
     done
+END
     for t in 1 2
     do
         echo GEO DIFF "$v" $t

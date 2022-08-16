@@ -114,8 +114,7 @@ def make_ensemble_stats(inroot, stat_op):
 # hist => 2005
 # rcp4.5 start 2006
 
-#def make_stats(inroot, outroot, stat_op, periods=((1951, 2000), (2031, 2060), (2071, 2100))):
-def make_stats(inroot, outroot, stat_op, periods=((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100))):
+def make_stats(inroot, outroot, stat_op, periods):
 
     print(inroot)
     if inroot[-1] != '/':
@@ -181,7 +180,9 @@ def make_stats(inroot, outroot, stat_op, periods=((1971, 2000), (1985, 2014), (1
 # Create mean and variance average data over all the periods, seasons (full = all seasons)
 
 if __name__ == '__main__':
-    periods = ((1951, 2000), (2031, 2060), (2071, 2100))
+    #periods = ((1951, 2000), (2031, 2060), (2071, 2100))
+    periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100))
+    
     #stat_ops = {'mean': 1, 'avg': 2, 'var': 3, 'std': 4, 'min': 5, 'max': 6, 'range': 7, 
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'ens-mean': 4, 'ens-min': 5, 'ens-max': 6}
     try:
@@ -193,16 +194,23 @@ if __name__ == '__main__':
         print('Usage: make_stats {mean | min | max | ens-mean | ens-min | ens-max} [intervals]')
         exit()
 
+
     uname = platform.uname()
-    if uname[0] != 'Linux':
+    print(uname)
+    if uname.system != 'Linux':
         print('Exit. Must be run under Linux because it needs CDO and NCO')
         exit()
-    if '-tos' in uname[1]: # NIRD or similar
+    if '-tos' in uname.node: # NIRD or similar
         inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11'
         outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3'
-    elif uname[1] == 'DESKTOP-H8NNHQA': # Home PC.
+    elif 'ppi-ext' in uname.node: # met.no
+        inroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11'
+        outroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/stats_v3'
+    elif uname.node == 'DESKTOP-H8NNHQA': # Home PC.
         inroot = '/mnt/j/DATA/EUR-11'
         outroot = '/mnt/c/Dev/DATA/cordex-norway/stats_v3'
+    else:
+        print("WTF")
 
     if stat_op.startswith('ens-'):
         make_ensemble_stats(outroot, stat_op)
