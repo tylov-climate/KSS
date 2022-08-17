@@ -53,10 +53,12 @@ MPI-CSC/MPI-M-MPI-ESM-LR/rcp26/r1i1p1/REMO2009/v1/day/pr/v20160525
 def find_period(d1, d2, periods):
     i = 0
     for p in periods:
-        if p[0] <= d1.year <= d2.year <= p[1]: return i
-        elif (p[0] <= d1.year <= p[1]) or (p[0] <= d2.year <= p[1]): return -2
+        if p[0] <= d1.year <= d2.year <= p[1]:
+            return i, 0
+        elif (p[0] <= d1.year <= p[1]) or (p[0] <= d2.year <= p[1]):
+            return i, -2
         i += 1
-    return -1
+    return 0, -1
 
 
 def make_ensemble_stats(inroot, stat_op):
@@ -133,11 +135,11 @@ def make_stats(inroot, outroot, stat_op, periods):
             base = os.path.basename(file)
             dt1 = dt.datetime.strptime(base[-20:-12], '%Y%m%d')
             dt2 = dt.datetime.strptime(base[-11:-3], '%Y%m%d')
-            p = find_period(dt1, dt2, periods)
-            if p == -2:
-                print('Warning: skipping file partially in period:', base)
+            p, err = find_period(dt1, dt2, periods)
+            if err == -2:
+                print('Warning: skipping file partially in period', periods[p], base)
                 continue
-            if p == -1:
+            if err != 0:
                 continue
             if p in period_map:
                 period_map[p].append(file)
@@ -210,7 +212,8 @@ if __name__ == '__main__':
         inroot = '/mnt/j/DATA/EUR-11'
         outroot = '/mnt/c/Dev/DATA/cordex-norway/stats_v3'
     else:
-        print("WTF")
+        print("Not a known computer. Exit.")
+        exit()
 
     if stat_op.startswith('ens-'):
         make_ensemble_stats(outroot, stat_op)
