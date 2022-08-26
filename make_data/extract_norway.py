@@ -119,4 +119,6 @@ if __name__ == '__main__':
     inroot="/lustre/storeC-ext/users/kin2100/MET/cordex/output/EUR-11"
     outroot="/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11"
 
+    print("inroot:", inroot)
+    print("outroot:", outroot)
     crop_cordex_eur11_to_norway(inroot, outroot)
