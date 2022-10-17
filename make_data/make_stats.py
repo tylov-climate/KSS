@@ -73,15 +73,15 @@ def make_ensemble_stats(inroot, stat_op):
         print('output:', outfile)
 
         if base.startswith('pr_'):
-            cmd1 = 'cdo -O ens%s %s/*.nc %s' % (op, dd, 'tmp1.nc')
-            cmd2 = 'cdo -O setattribute,pr@units="mm year-1" %s %s' % ('tmp1.nc', 'tmp2.nc')
+            cmd1 = cdo + ' -L -O ens%s %s/*.nc %s' % (op, dd, 'tmp1.nc')
+            cmd2 = cdo + ' -L -O setattribute,pr@units="mm year-1" %s %s' % ('tmp1.nc', 'tmp2.nc')
             cmd3 = 'ncap2 -O -s "pr=31557600*pr" %s %s' % ('tmp2.nc', outfile)
             ret = os.system(cmd1)
             ret = os.system(cmd2)
             ret = os.system(cmd3)
         elif base.startswith('tas_'):
-            cmd1 = 'cdo -O ens%s %s/*.nc %s' % (op, dd, 'tmp1.nc')
-            cmd2 = 'cdo -O setattribute,tas@units="Celsius" %s %s' % ('tmp1.nc', 'tmp2.nc')
+            cmd1 = cdo + ' -L -O ens%s %s/*.nc %s' % (op, dd, 'tmp1.nc')
+            cmd2 = cdo + ' -L -O setattribute,tas@units="Celsius" %s %s' % ('tmp1.nc', 'tmp2.nc')
             cmd3 = 'ncap2 -O -s "tas=tas-273.15f" %s %s' % ('tmp2.nc', outfile)
             ret = os.system(cmd1)
             ret = os.system(cmd2)
@@ -116,7 +116,7 @@ def make_ensemble_stats(inroot, stat_op):
 # hist => 2005
 # rcp4.5 start 2006
 
-def make_stats(inroot, outroot, stat_op, periods):
+def make_stats(inroot, outroot, stat_op, periods, modelname):
 
     print(inroot)
     if inroot[-1] != '/':
@@ -125,75 +125,107 @@ def make_stats(inroot, outroot, stat_op, periods):
     if not os.path.isdir(outroot):
         os.makedirs(outroot)
 
-    for dd in glob.glob(os.path.join(inroot, '*/*/*/*/*/*/day/*/*')):
+    for dd in glob.glob(os.path.join(inroot, modelname + '/*/*/*/*/*/day/*/*')):
         subpath = dd.replace(inroot, '')
         institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id = subpath.split('/')
         #print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
-
+        if not (var_id == 'pr' or var_id == 'tas'):
+            continue
         period_map = {}
+        tmp_files = []
+        changed_expid = False
         for file in glob.glob(os.path.join(dd, '*.nc')):
             base = os.path.basename(file)
             dt1 = dt.datetime.strptime(base[-20:-12], '%Y%m%d')
             dt2 = dt.datetime.strptime(base[-11:-3], '%Y%m%d')
+            if dt2.year < 2021:
+                if experiment_id == 'rcp85':
+                    experiment_id = 'historical'
+                    changed_expid = True
+                else:
+                    continue
             p, err = find_period(dt1, dt2, periods)
+            mfile = file
             if err == -2:
-                print('Warning: skipping file partially in period', periods[p], base)
+                print('    Truncating file partially inside period', periods[p], base)
+                tmpfile = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
+                cmd = cdo + " -L copy -seldate,%d-01-01,%d-12-31 '%s' %s" % (periods[p][0], periods[p][1], file, tmpfile)
+                ret = os.system(cmd)
+                tmp_files.append(tmpfile)
+                mfile = tmpfile
+            elif err == -1:
                 continue
-            if err != 0:
-                continue
+
             if p in period_map:
-                period_map[p].append(file)
+                period_map[p].append(mfile)
             else:
-                period_map[p] = [file]
+                period_map[p] = [mfile]
 
         for p, period_files in period_map.items():
             op = 'yseas' + stat_op
             period_id = '%d-%d' % (periods[p][0], periods[p][1])
             experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, op, create_ver_id)
             outfile = os.path.join(outroot, '%s_%s_%s_%s' % (var_id, op, period_id, experiment_id[:5]), experiment + '_%s.nc' % period_id)
+            odir = os.path.dirname(outfile)
+            oname = os.path.basename(outfile)
 
             if os.path.isfile(outfile):
                 print('    ...exists')
                 continue
             tmpfile = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
             infiles = os.path.join(inroot, period_files[0])
+            print("CDO", op, '=>', oname)
+            print('    ', os.path.basename(period_files[0]))
             for f in period_files[1:]:
                 infiles += ' ' + os.path.join(inroot, f)
+                print('    ', os.path.basename(f))
 
-            cmd = "cdo %s -cat '%s' %s" % (op, infiles, tmpfile)
+            cmd = cdo + " -L %s -cat '%s' %s" % (op, infiles, tmpfile)
             ret = os.system(cmd)
+            if changed_expid:
+                os.system('ncatted -a experiment_id,global,m,c,historical -O %s %s.nc' % (tmpfile, tmpfile))
+                os.remove(tmpfile)
+                os.rename(tmpfile + '.nc', tmpfile)
             '''
+            # change to mm/year
             if var_id == 'pr' and ret == 0:
                 if 0 == os.system('ncap2 -s "pr=31557600*pr" %s %s.nc' % (tmpfile, tmpfile)):
                     if 0 == os.system('ncatted -O -a units,pr,m,c,"mm/year" %s.nc %s' % (tmpfile, tmpfile)):
                         os.remove(tmpfile + '.nc')
             '''
             if ret == 0:
-                odir = os.path.dirname(outfile)
                 if not os.path.isdir(odir):
                     os.makedirs(odir)
-                    print('Created dir:', odir)
+                    print('    Created dir:', odir)
                 os.rename(tmpfile, outfile)
-                print('Created:', outfile)
-            else:
-                print('Return status:', ret)
+                print('    Created file:', oname)
+            #else:
+            #    print('Return status:', ret)
+
+        for file in tmp_files:
+            os.remove(file)
+
 
 
 # Create mean and variance average data over all the periods, seasons (full = all seasons)
 
 if __name__ == '__main__':
-    #periods = ((1951, 2000), (2031, 2060), (2071, 2100))
-    periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100))
-    
-    #stat_ops = {'mean': 1, 'avg': 2, 'var': 3, 'std': 4, 'min': 5, 'max': 6, 'range': 7, 
+    #periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD
+    periods = ((1971, 2000), (2041, 2070), (2071, 2100)) # CMIPS5
+    #periods = ((1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # CMIPS6
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'ens-mean': 4, 'ens-min': 5, 'ens-max': 6}
+    modelname = '*'
+    cdo = 'cdo'
+
     try:
         stat_op = sys.argv[1]
         n = stat_ops[stat_op]
-        if len(sys.argv) > 3:
-            periods = [(int(sys.argv[i]), int(sys.argv[i+1])) for i in range(2, len(sys.argv), 2)]
+        #if len(sys.argv) > 3:
+        #    periods = [(int(sys.argv[i]), int(sys.argv[i+1])) for i in range(2, len(sys.argv), 2)]
+        if len(sys.argv) > 2:
+            modelname = sys.argv[2]
     except:
-        print('Usage: make_stats {mean | min | max | ens-mean | ens-min | ens-max} [intervals]')
+        print('Usage: make_stats {mean | min | max | ens-mean | ens-min | ens-max} [MODELNAME]')
         exit()
 
 
@@ -204,13 +236,16 @@ if __name__ == '__main__':
         exit()
     if '-tos' in uname.node: # NIRD or similar
         inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11'
-        outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3'
+        outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW'
+        #inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11.OLD'
+        #outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.OLD'
+        cdo = '/opt/cdo'
     elif 'ppi-ext' in uname.node: # met.no
         inroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11'
-        outroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/stats_v3'
+        outroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/stats_v3.NEW'
     elif uname.node == 'DESKTOP-H8NNHQA': # Home PC.
         inroot = '/mnt/j/DATA/EUR-11'
-        outroot = '/mnt/c/Dev/DATA/cordex-norway/stats_v3'
+        outroot = '/mnt/c/Dev/DATA/cordex-norway/stats_v3.NEW'
     else:
         print("Not a known computer. Exit.")
         exit()
@@ -218,4 +253,4 @@ if __name__ == '__main__':
     if stat_op.startswith('ens-'):
         make_ensemble_stats(outroot, stat_op)
     else:
-    	make_stats(inroot, outroot, stat_op, periods)
+    	make_stats(inroot, outroot, stat_op, periods, modelname)
