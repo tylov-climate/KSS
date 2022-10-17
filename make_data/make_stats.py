@@ -131,39 +131,41 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
         #print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
         if not (var_id == 'pr' or var_id == 'tas'):
             continue
-        period_map = {}
-        tmp_files = []
-        changed_expid = False
-        for file in glob.glob(os.path.join(dd, '*.nc')):
-            base = os.path.basename(file)
-            dt1 = dt.datetime.strptime(base[-20:-12], '%Y%m%d')
-            dt2 = dt.datetime.strptime(base[-11:-3], '%Y%m%d')
-            if dt2.year < 2021:
+        for per in periods:
+            period_files = []
+            tmp_files = []
+
+            changed_expid = True
+            if per[1] < 2021:
                 if experiment_id == 'rcp85':
                     experiment_id = 'historical'
                     changed_expid = True
                 else:
                     continue
-            p, err = find_period(dt1, dt2, periods)
-            mfile = file
-            if err == -2:
-                print('    Truncating file partially inside period', periods[p], base)
-                tmpfile = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
-                cmd = cdo + " -L copy -seldate,%d-01-01,%d-12-31 '%s' %s" % (periods[p][0], periods[p][1], file, tmpfile)
-                ret = os.system(cmd)
-                tmp_files.append(tmpfile)
-                mfile = tmpfile
-            elif err == -1:
+
+            for file in glob.glob(os.path.join(dd, '*.nc')):
+                base = os.path.basename(file)
+
+                dt0 = dt.datetime.strptime(base[-20:-12], '%Y%m%d')
+                dt1 = dt.datetime.strptime(base[-11:-3], '%Y%m%d')
+                if dt1.year < per[0] or dt0.year > per[1]:
+                    continue
+                if dt0.year >= per[0] and dt1.year <= per[1]:
+                    mfile = file
+                else:
+                    print('    Truncating file partially inside period', per, base)
+                    tmpfile = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
+                    cmd = cdo + " -L copy -seldate,%d-01-01,%d-12-31 '%s' %s" % (per[0], per[1], file, tmpfile)
+                    ret = os.system(cmd)
+                    tmp_files.append(tmpfile)
+                    mfile = tmpfile
+
+                period_files.append(mfile)
+
+            if len(period_files) == 0:
                 continue
-
-            if p in period_map:
-                period_map[p].append(mfile)
-            else:
-                period_map[p] = [mfile]
-
-        for p, period_files in period_map.items():
             op = 'yseas' + stat_op
-            period_id = '%d-%d' % (periods[p][0], periods[p][1])
+            period_id = '%d-%d' % (per[0], per[1])
             experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, op, create_ver_id)
             outfile = os.path.join(outroot, '%s_%s_%s_%s' % (var_id, op, period_id, experiment_id[:5]), experiment + '_%s.nc' % period_id)
             odir = os.path.dirname(outfile)
@@ -202,8 +204,8 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
             #else:
             #    print('Return status:', ret)
 
-        for file in tmp_files:
-            os.remove(file)
+            for file in tmp_files:
+                os.remove(file)
 
 
 
