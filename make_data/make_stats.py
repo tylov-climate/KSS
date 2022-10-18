@@ -171,11 +171,13 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
             outfile = os.path.join(outroot, '%s_%s_%s_%s' % (var_id, op, period_id, expid[:5]), experiment + '_%s.nc' % period_id)
             odir = os.path.dirname(outfile)
             oname = os.path.basename(outfile)
-
+            '''
             if os.path.isfile(outfile):
                 print('    ...exists')
                 continue
-            tmpfile = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
+            '''
+            #tmpfile = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
+            tmpfile = os.path.join(outroot, oname)
             infiles = os.path.join(inroot, period_files[0])
             print("CDO", op, '=>', oname)
             print('    ', os.path.basename(period_files[0]))
@@ -186,10 +188,19 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
             cmd = cdo + " -L %s -cat '%s' %s" % (op, infiles, tmpfile)
             ret = os.system(cmd)
 
+            '''
             if expid != experiment_id:
                 os.system('ncatted -a experiment_id,global,m,c,historical -O %s %s.nc' % (tmpfile, tmpfile))
                 os.remove(tmpfile)
                 os.rename(tmpfile + '.nc', tmpfile)
+            '''
+
+            if os.path.isfile(outfile):
+                cmd = cdo + " -L cat '%s %s' %s.nc" % (outfile, tmpfile, tmpfile)
+                ret = os.system(cmd)
+                os.remove(tmpfile)
+                os.rename(tmpfile + '.nc', tmpfile)
+
             '''
             # change to mm/year
             if var_id == 'pr' and ret == 0:
@@ -197,6 +208,7 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
                     if 0 == os.system('ncatted -O -a units,pr,m,c,"mm/year" %s.nc %s' % (tmpfile, tmpfile)):
                         os.remove(tmpfile + '.nc')
             '''
+
             if ret == 0:
                 if not os.path.isdir(odir):
                     os.makedirs(odir)
@@ -215,8 +227,9 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
 
 if __name__ == '__main__':
     #periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD
-    periods = ((1971, 2000), (2041, 2070), (2071, 2100)) # CMIPS5
+    #periods = ((1971, 2000), (2041, 2070), (2071, 2100)) # CMIPS5
     #periods = ((1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # CMIPS6
+    periods = ((1971, 2000), (1991, 2020), (2041, 2070), (2071, 2100)) # MIX CMIPS5, CMIPS6
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'ens-mean': 4, 'ens-min': 5, 'ens-max': 6}
     modelname = '*'
     cdo = 'cdo'
@@ -239,10 +252,10 @@ if __name__ == '__main__':
         print('Exit. Must be run under Linux because it needs CDO and NCO')
         exit()
     if '-tos' in uname.node: # NIRD or similar
-        inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11'
-        outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW'
-        #inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11.OLD'
-        #outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.OLD'
+        #inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11'
+        #outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW2'
+        inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11.OLD'
+        outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.OLD'
         cdo = '/opt/cdo'
     elif 'ppi-ext' in uname.node: # met.no
         inroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11'

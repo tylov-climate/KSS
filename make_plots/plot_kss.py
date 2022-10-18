@@ -36,7 +36,8 @@ import cartopy.feature as cpf
 
 
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
-periods = ('1951-2000', '2031-2060', '2071-2100')
+#periods = ('1951-2000', '2031-2060', '2071-2100')
+periods = ((1971, 2000), (1991, 2020), (2041, 2070), (2071, 2100)) # MIX CMIPS5, CMIPS6
 season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
 norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
 
@@ -82,9 +83,15 @@ def catplot2(df):
 
 def barplot(df):
     df = df[df.Season == args.season]
-    df = df[df.Period == periods[period]]
+    print(df)
+    print(periods[period], experiment)
+    #exit()
+    #df = df[df.Period == periods[period]]
+
     df = df[df.Experiment == experiment]
     df = df.sort_values('FullModel')
+
+
     sns.set(style='whitegrid')
     sns.set(rc={'figure.figsize':(11, 9.6)})
     ax = sns.barplot(data=df, x=variable, y='FullModel') # orient='h'
@@ -300,7 +307,7 @@ def get_args():
     )
     parser.add_argument(
         '-t', '--period', default=1,
-        help='Time period (0: 1951-2000, 1: 2031-2060=default, 2: 2071-2100)'
+        help='Time period (0: 1971-2000, 1: 1991-2020, 2: 2031-2060=default, 3: 2071-2100)'
     )
     parser.add_argument(
         '-f', '--csvfile',
@@ -363,6 +370,7 @@ if __name__ == '__main__':
         if args.var == "PR diff": variable = 'PR mm.year'
 
     csvfile = args.csvfile if args.csvfile else 'yseas%s_kss%s.csv' % (args.stat, overlaps)
+    print(csvfile)
 
     # Read dataset
     df = pd.read_csv(csvfile, index_col=0, sep=';')
@@ -372,6 +380,7 @@ if __name__ == '__main__':
         lambda x: '_'.join(x.dropna().astype(str)),
         axis=1
     )
+
     df['FullModel'] = models
     df = df[df.FullModel != 'MIROC-MIROC5_WRF361H_r1i1p1']
 
