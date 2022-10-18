@@ -135,12 +135,13 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
             period_files = []
             tmp_files = []
 
-            changed_expid = True
-            if per[1] < 2021:
+            # Re-categorize 'rcp85' for years < 2022 to 'historical',
+            # and skip rcp26 and rcp45 for years < 2022
+            expid = experiment_id
+            if per[1] < 2022:
                 if experiment_id == 'rcp85':
-                    experiment_id = 'historical'
-                    changed_expid = True
-                else:
+                    expid = 'historical'
+                elif experiment_id != 'historical':
                     continue
 
             for file in glob.glob(os.path.join(dd, '*.nc')):
@@ -166,8 +167,8 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
                 continue
             op = 'yseas' + stat_op
             period_id = '%d-%d' % (per[0], per[1])
-            experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, op, create_ver_id)
-            outfile = os.path.join(outroot, '%s_%s_%s_%s' % (var_id, op, period_id, experiment_id[:5]), experiment + '_%s.nc' % period_id)
+            experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, expid, ensemble_id, source_id, rcm_version_id, op, create_ver_id)
+            outfile = os.path.join(outroot, '%s_%s_%s_%s' % (var_id, op, period_id, expid[:5]), experiment + '_%s.nc' % period_id)
             odir = os.path.dirname(outfile)
             oname = os.path.basename(outfile)
 
@@ -184,7 +185,8 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
 
             cmd = cdo + " -L %s -cat '%s' %s" % (op, infiles, tmpfile)
             ret = os.system(cmd)
-            if changed_expid:
+
+            if expid != experiment_id:
                 os.system('ncatted -a experiment_id,global,m,c,historical -O %s %s.nc' % (tmpfile, tmpfile))
                 os.remove(tmpfile)
                 os.rename(tmpfile + '.nc', tmpfile)
