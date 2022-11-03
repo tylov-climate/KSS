@@ -129,7 +129,7 @@ def average_data(inroot, output):
     return stats, dims
 
 
-def create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=False):
+def create_dataframe(stats, dims, stat_op, use_rcp_overlaps=False):
     d = dims['inv']
     m = {'Season': [], 'Experiment': [], 'Period': [],
          'Institute': [], 'Model': [], 'Model Id': [], 'Ensemble': [], 'RCM Ver': [],
@@ -201,10 +201,6 @@ def create_dataframe(stats, dims, file, stat_op, use_rcp_overlaps=False):
     for i in range(1, len(last_study_models)):
         last_study |= models == last_study_models[i]
     df['Previous Study'] = last_study
-    #df.to_pickle(file + '.pkl')
-    if use_rcp_overlaps:
-        file += '_overlaps'
-    df.to_csv(file + '.csv', sep=';')
     return df
 
 
@@ -254,15 +250,22 @@ if __name__ == '__main__':
     if args.indir:
         inroot = args.indir
     elif '-tos' in uname: # NIRD or similar
-        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3/%s' % sub_path
+        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW/%s' % sub_path
     elif uname == 'CMR-PC-158': # Work
         inroot = 'D:/Data/EUR-11_norway/stats_v3/%s' % sub_path
     else: # home
         inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % sub_path
+
     file = '%s_kss' % stat_op
+    if args.overlaps:
+        file += '_overlaps'
+
+    print('Inroot:', inroot)
+    print('Output:', file + '.csv')
 
     if False: # os.path.exists(file + '.pkl'):
-        #df = pd.read_pickle(file + '.pkl')
+        print("Load", file + '.pkl')
+        df = pd.read_pickle(file + '.pkl')
         df = pd.read_csv(file + '.csv', sep=';')
     else:
         stats, dims = average_data(inroot, file)
@@ -271,6 +274,9 @@ if __name__ == '__main__':
         print(dims['exps'])
         print(dims['stat_ops'])
         print(dims['variables'])
-        df = create_dataframe(stats, dims, file, stat_op, args.overlaps)
-    print(df)
+        df = create_dataframe(stats, dims, stat_op, args.overlaps)
 
+    print(df)
+    df.to_pickle(file + '.pkl')
+    df.to_csv(file + '.csv', sep=';')
+    print("File written:", file + '.csv')

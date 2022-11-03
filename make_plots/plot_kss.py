@@ -36,15 +36,18 @@ import cartopy.feature as cpf
 
 
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
-#periods = ('1951-2000', '2031-2060', '2071-2100')
-periods = ((1971, 2000), (1991, 2020), (2041, 2070), (2071, 2100)) # MIX CMIPS5, CMIPS6
+periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD CMIPS 5
+#periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIPS5
+#periods = ((1985, 2014),              (1991, 2020), (2041, 2070), (2071, 2100)) # CMIPS6
+#periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
+periods_str = ['%d-%d' % (p[0], p[1]) for p in periods]
 season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
 norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
 
 
 def catplot1(df):
     df = df[df.Season == args.season]
-    df = df[df.Period == periods[period]]
+    df = df[df.Period == periods_str[period]]
     df = df[df.Experiment == experiment]
     df = df.sort_values('FullModel')
     sns.set(style='whitegrid')
@@ -61,7 +64,7 @@ def catplot1(df):
 
 def catplot2(df):
     df = df[df.Season == args.season]
-    df = df[df.Period == periods[period]]
+    df = df[df.Period == periods_str[period]]
     df = df[df.Experiment == experiment]
     df = df.sort_values('FullModel')
     sns.set(style='whitegrid')
@@ -75,7 +78,7 @@ def catplot2(df):
         tit = "Temperaturendring [°C]" if variable == "TAS diff" else "Temperatur [°C]"
     else:
         tit = "Nedbørsendring [%]" if variable == "PR diff" else "Nedbør [mm/år]"
-    g.fig.suptitle('Euro-CORDEX 11: %s, sesong: %s, %s, %s' % (tit, args.season, periods[period], experiment), fontsize=16, y=0.98)
+    g.fig.suptitle('Euro-CORDEX 11: %s, sesong: %s, %s, %s' % (tit, args.season, periods_str[period], experiment), fontsize=16, y=0.98)
     plt.tight_layout()
     if args.save:
         save_plot(g, "catplot2", variable)
@@ -83,19 +86,15 @@ def catplot2(df):
 
 def barplot(df):
     df = df[df.Season == args.season]
-    print(df)
-    print(periods[period], experiment)
-    #exit()
-    #df = df[df.Period == periods[period]]
-
+    df = df[df.Period == periods_str[period]]
     df = df[df.Experiment == experiment]
     df = df.sort_values('FullModel')
-
 
     sns.set(style='whitegrid')
     sns.set(rc={'figure.figsize':(11, 9.6)})
     ax = sns.barplot(data=df, x=variable, y='FullModel') # orient='h'
-    ax.set_xlabel('Variabel ' + variable + ': Sesong ' + args.season + ', ' + periods[period] + ', scenario ' + experiment) #, fontsize=12)
+    ax.set_xlabel('Variabel ' + variable + ': Sesong ' + args.season + ', ' + periods_str[period] + ', scenario ' + experiment) #, fontsize=12)
+
     if args.overlaps:
         ax.set_ylabel('Euro-CORDEX 11: Utvalgte klimamodeller med 3 scenarioer')
     else:
@@ -108,17 +107,18 @@ def barplot(df):
 
 
 def grid_scatterplot_diff(df):
-    global periods
-    #sns.set_style('whitegrid')
+    global periods_str
+    sns.set_style('whitegrid')
     sns.set(style='ticks')
     df = df[df.Season == args.season]
-    df = df[df.Period == periods[period]]
+    df = df[df.Period == periods_str[period]]
     df = df[df.Experiment != 'historical']
+    print(df)
     g = sns.FacetGrid(df, col='Experiment',
                           row='Period',
                           hue='Model', palette='bright', height=9.6, aspect=0.6,
                           legend_out=False, sharex=False, sharey=True) # despine=False 
-    g.fig.suptitle('Nedbør- og temperatur-endring, sesong: %s' % args.season, fontsize=16, y=0.98)
+    #g.fig.suptitle('Nedbør- og temperatur-endring, sesong: %s' % args.season, fontsize=16, y=0.98)
     g.map(scatterplot_func, 'TAS diff', 'PR diff', 'Model Id') # , markers=markers) #, style='Model Id')
     g.fig.subplots_adjust(top=0.91, left=0.04, bottom=0.07, wspace=0.1, hspace=1.5)
     g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
@@ -129,7 +129,7 @@ def grid_scatterplot_diff(df):
 
 def grid_scatterplot_abs(df):
     df = df[df.Season == args.season]
-    df = df[df.Period == periods[period]]
+    df = df[df.Period == periods_str[period]]
     sns.set(style='ticks')
     g = sns.FacetGrid(df, col='Experiment',
                           row='Period',
@@ -179,12 +179,12 @@ def scatterplot_func(x, y, style, **kwargs):
         #list = np.concatenate((extremes, sn))
         list = extremes # plot extreme names only
 
-    #print(list, xmd, ymd)
+    print(list, xmd, ymd)
     plt.scatter(x=xmd[1], y=ymd[2], color=c, marker='v', s=60) # Plot median
     plt.scatter(x=xm, y=ym, color=c, marker='X', s=60)         # Plot average
     ax = sns.scatterplot(x=x, y=y, s=30, marker='o', **kwargs)     # Plot as r'o'und
-    #ax.axhline(ym, alpha=0.1, color='black')
-    #ax.axvline(xm, alpha=0.1, color='black')
+    ax.axhline(ym, alpha=0.1, color='black')
+    ax.axvline(xm, alpha=0.1, color='black')
 
     # Print the model names
     for i in list:
@@ -195,7 +195,7 @@ def scatterplot_func(x, y, style, **kwargs):
 
 
 def geoplot():
-    global periods, season_map
+    global periods_str, season_map
     varname = 'tas' if variable == 'TAS diff' or variable == 'TAS celsius' else 'pr'
     nc_data = geoplot_load(varname, not args.abs)
     nc_var = nc_data.variables[varname]
@@ -222,7 +222,7 @@ def geoplot():
         tit = "Temperaturendring [°C]" if variable == "TAS diff" else "Temperatur [°C]"
     else:
         tit = "Nedbørsendring [%]" if variable == "PR diff" else "Nedbør [mm/år]"
-    fig.suptitle('Euro-CORDEX 11: %s (%s) i perioden %s, scenario %s' % (tit, variable, periods[period], experiment), fontsize=16, y=0.98)
+    fig.suptitle('Euro-CORDEX 11: %s (%s) i perioden %s, scenario %s' % (tit, variable, periods_str[period], experiment), fontsize=16, y=0.98)
     plt.subplots_adjust(top=0.91, left=0.04, bottom=0.07, wspace=0.08, hspace=0.08)
     
     #plt.tight_layout()
@@ -232,7 +232,7 @@ def geoplot():
 
 def geoplot_load(varname, diff=True):
     # load NetCDF file into variable
-    fpath = 'yseas%s_%s_%s_ens%s' % (args.stat, periods[period], experiment, args.stat)
+    fpath = 'yseas%s_%s_%s_ens%s' % (args.stat, periods_str[period], experiment, args.stat)
     if diff:
         file = args.indir + '/ensdiff/%s_%s_diff.nc' % (varname, fpath)
     else:
@@ -278,7 +278,7 @@ def save_plot(g, plotname, varname=''):
 
 uname = platform.uname()[1]
 if '-tos' in uname: # NIRD or similar
-    inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3'
+    inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.OLD'
 elif 'ppi-ext' in uname: # met.no
     inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
 elif uname == 'CMR-PC-158': # Work
@@ -306,8 +306,8 @@ def get_args():
         help='Absolute values instead of differences'
     )
     parser.add_argument(
-        '-t', '--period', default=1,
-        help='Time period (0: 1971-2000, 1: 1991-2020, 2: 2031-2060=default, 3: 2071-2100)'
+        '-t', '--period', default=2,
+        help='Time period (0: 1971-2000, 1: 1991-2020, 2: 2041-2070=default, 3: 2071-2100)'
     )
     parser.add_argument(
         '-f', '--csvfile',
