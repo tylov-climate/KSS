@@ -61,7 +61,7 @@ def find_period(d1, d2, periods):
     return 0, -1
 
 
-def make_ensemble_stats(inroot, stat_op):
+def make_ensemble_stats(inroot, stat_op, ref_per):
     op = stat_op.split('-')[1]
     for dd in glob.glob(os.path.join(inroot, 'yseas%s/*' % op)):
         base = os.path.basename(dd)
@@ -88,7 +88,9 @@ def make_ensemble_stats(inroot, stat_op):
             ret = os.system(cmd3)
         else:
             print('skipping %s folder...' % dd)
-
+    os.remove('tmp1.nc')
+    os.remove('tmp2.nc')
+    
     if True:
         for ff in glob.glob(os.path.join(inroot, 'ens%s/*.nc' % op)):
             base = os.path.basename(ff)
@@ -96,22 +98,21 @@ def make_ensemble_stats(inroot, stat_op):
             if part[3] == 'histo':
                 continue
             var = part[0]
-            fhist = os.path.join(os.path.dirname(ff), '_'.join((part[0], part[1], '1951-2000_histo', part[4])))
+            # fhist ref?
+            fhist = os.path.join(os.path.dirname(ff), '_'.join((part[0], part[1], '%d-%d_histo' % (ref_per[0], ref_per[1]), part[4])))
             outdir = os.path.join(inroot, 'ensdiff')
             outfile = os.path.join(outdir, base.replace('.nc', '_diff.nc'))
             print('computing diff:', outfile)
 
             os.makedirs(outdir, exist_ok=True)
             shutil.copyfile(ff, outfile)
-            nc = nc4.Dataset(outfile, 'r+')
-            nc_hist = nc4.Dataset(fhist)
-            if var == 'tas':
-                data = nc.variables[var][:] - nc_hist.variables[var][:]
-            if var == 'pr':
-                data = 100 * (nc.variables[var][:] - nc_hist.variables[var][:]) / nc_hist.variables[var][:]
-            nc[var][:] = data
-            nc.close()
-
+            with nc4.Dataset(outfile, 'r+') as nc:
+                nc_hist = nc4.Dataset(fhist)
+                if var == 'tas':
+                    data = nc.variables[var][:] - nc_hist.variables[var][:]
+                if var == 'pr':
+                    data = 100 * (nc.variables[var][:] - nc_hist.variables[var][:]) / nc_hist.variables[var][:]
+                nc[var][:] = data
 
 # hist => 2005
 # rcp4.5 start 2006
@@ -166,7 +167,7 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
                 else:
                     # Create tmpfiles with data inside the selected date range only.
                     #tmpfile = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
-                    tmpfile = os.path.join(outroot, base + '-trunc-%s.nc' % period_id)
+                    tmpfile = os.path.join(outroot, base + '-TRUNCATED-%s.nc' % period_id)
                     tmp_files.append(tmpfile)
                     mfile = tmpfile
                     cmd = cdo + " -L copy -seldate,%d-01-01,%d-12-31 '%s' %s" % (per[0], per[1], file, tmpfile)
@@ -245,8 +246,13 @@ def parse_args():
         help='Only print the operations'
     )
     parser.add_argument(
-        '-s', '--stat',  default='mean',
-        help='statistical operation (mean, min, max, ens-mean, ens-min, ens-max)'
+        '-r', '--ref-period',  default=1,
+        help='Ref. hist period: default=1 (' + ', '.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
+
+    )
+    parser.add_argument(
+        '-s', '--stat',  required=True,
+        help='stat operation: REQUIRED (mean, min, max, ens-mean, ens-min, ens-max)'
     )
     parser.add_argument(
         '-i', '--indir', default=None,
@@ -258,14 +264,14 @@ def parse_args():
     )
     parser.add_argument(
         '-m', '--model', default='*',
-        help='Input model name (default all)'
+        help='Input model name: default "*"'
     )
     return parser.parse_args()
 
 # Create mean and variance average data over all the periods, seasons (full = all seasons)
 
 if __name__ == '__main__':
-    #periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD
+    #periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD MIPS5
     #periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIPS5
     #periods = ((1985, 2014), (1991, 2020),              (2041, 2070), (2071, 2100)) # CMIPS6
     periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
@@ -273,21 +279,10 @@ if __name__ == '__main__':
     cdo = 'cdo'
     
     args = parse_args()    
-    modelname = args.model
-    stat_op = args.stat
     dry = args.dry
-
-    #try:
-        #stat_op = sys.argv[1]
-        #n = stat_ops[stat_op]
-        #if len(sys.argv) > 3:
-        #    periods = [(int(sys.argv[i]), int(sys.argv[i+1])) for i in range(2, len(sys.argv), 2)]
-        #if len(sys.argv) > 2:
-        #    modelname = sys.argv[2]
-    #except:
-        #print('Usage: make_stats {mean | min | max | ens-mean | ens-min | ens-max} [MODELNAME]')
-        #exit()
-
+    stat_op = args.stat
+    n = stat_ops[stat_op]
+    modelname = args.model
 
     uname = platform.uname()
     print(uname)
@@ -311,6 +306,7 @@ if __name__ == '__main__':
         exit()
 
     if stat_op.startswith('ens-'):
-        make_ensemble_stats(outroot, stat_op)
+        print('Reference period:', periods[int(args.ref_period)])
+        make_ensemble_stats(outroot, stat_op, periods[int(args.ref_period)])
     else:
     	make_stats(inroot, outroot, stat_op, periods, modelname)
