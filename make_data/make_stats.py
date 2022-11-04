@@ -297,13 +297,10 @@ if __name__ == '__main__':
         cdo = '/opt/cdo'
     elif 'ppi-ext' in uname.node: # met.no
         inroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11'
-        outroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/stats_v3.NEW'
-    elif uname.node == 'DESKTOP-H8NNHQA': # Home PC.
-        inroot = '/mnt/j/DATA/EUR-11'
-        outroot = '/mnt/c/Dev/DATA/cordex-norway/stats_v3.NEW'
-    else:
-        print("Not a known computer. Exit.")
-        exit()
+        outroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/stats_v3'
+    else: # home
+        inroot = 'C:/Dev/DATA/EUR-11'
+        outroot = 'C:/Dev/DATA/cordex-norway/stats_v3.OLD'
 
     if stat_op.startswith('ens-'):
         print('Reference period:', periods[int(args.ref_period)])

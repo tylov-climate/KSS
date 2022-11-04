@@ -35,16 +35,6 @@ import cartopy.crs as ccrs
 import cartopy.feature as cpf
 
 
-markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
-periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD CMIPS 5
-#periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIPS5
-#periods = ((1985, 2014),              (1991, 2020), (2041, 2070), (2071, 2100)) # CMIPS6
-#periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
-periods_str = ['%d-%d' % (p[0], p[1]) for p in periods]
-season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
-norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
-
-
 def catplot1(df):
     df = df[df.Season == args.season]
     df = df[df.Period == periods_str[period]]
@@ -113,7 +103,7 @@ def grid_scatterplot_diff(df):
     df = df[df.Season == args.season]
     df = df[df.Period == periods_str[period]]
     df = df[df.Experiment != 'historical']
-    print(df)
+
     g = sns.FacetGrid(df, col='Experiment',
                           row='Period',
                           hue='Model', palette='bright', height=9.6, aspect=0.6,
@@ -193,7 +183,6 @@ def scatterplot_func(x, y, style, **kwargs):
         ax.text(xa[i], ya[i], s, size='small') # , horizontalalignment='center', size='medium', color='black', weight='semibold')
 
 
-
 def geoplot():
     global periods_str, season_map
     varname = 'tas' if variable == 'TAS diff' or variable == 'TAS celsius' else 'pr'
@@ -241,6 +230,7 @@ def geoplot_load(varname, diff=True):
     nc_data = nc4.Dataset(file)
     return nc_data
 
+
 def geoplot_sub(rlat, rlon, var, fig, pos, title, type=1, res=30):
     rotated_pole = ccrs.RotatedPole(pole_longitude=-162.0, pole_latitude=39.25)
     ax = fig.add_subplot(pos, projection=rotated_pole)
@@ -255,6 +245,12 @@ def geoplot_sub(rlat, rlon, var, fig, pos, title, type=1, res=30):
         ax.set_extent(norway_rotated_pole, crs=rotated_pole)
         res = plt.pcolormesh(rlon, rlat, var, transform=rotated_pole)
     return res
+
+
+def kde_plot():
+    # Kernel density estimation
+    # https://seaborn.pydata.org/tutorial/distributions.html#kernel-density-estimation
+    pass
 
 
 def save_plot(g, plotname, varname=''):
@@ -278,13 +274,11 @@ def save_plot(g, plotname, varname=''):
 
 uname = platform.uname()[1]
 if '-tos' in uname: # NIRD or similar
-    inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.OLD'
+    inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW5'
 elif 'ppi-ext' in uname: # met.no
     inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
-elif uname == 'CMR-PC-158': # Work
-    inroot = 'D:/Data/EUR-11_norway/stats_v3'
 else: # home
-    inroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
+    inroot = 'C:/Dev/DATA/cordex-norway/stats_v3.NEW5'
 outroot = '../plots'
 
 args = None
@@ -298,16 +292,20 @@ def get_args():
     print('')
 
     parser.add_argument(
-        '-p', '--plot', default='bar',
-        help='Plot (bar, cat1, cat2, geo, scatter)'
+        '-p', '--plot', required=True, #default='bar',
+        help='Plot (bar, scatter, cat1, cat2, geo)'
     )
     parser.add_argument(
         '-a', '--abs', action='store_true',
         help='Absolute values instead of differences'
     )
     parser.add_argument(
-        '-t', '--period', default=2,
-        help='Time period (0: 1971-2000, 1: 1991-2020, 2: 2041-2070=default, 3: 2071-2100)'
+        '-t', '--period', default=3,
+        help='Time period: default=3 (' + ', '.join(['%d:%s' % (i, periods_str[i]) for i in range(len(periods))]) + ')'
+    )
+    parser.add_argument(
+        '-e', '--experiment', default='rcp85',
+        help='Experiment (historical, rcp26, rcp45, rcp85=default)'
     )
     parser.add_argument(
         '-f', '--csvfile',
@@ -325,10 +323,6 @@ def get_args():
     parser.add_argument(
         '-s', '--season', default='ANN',
         help='Season to be plotted (ANN=default, MAM, JJA, SON, DJF)'
-    )
-    parser.add_argument(
-        '-e', '--experiment', default='rcp85',
-        help='Experiment (historical, rcp26, rcp45, rcp85=default)'
     )
     parser.add_argument(
         '-v', '--var', default='TAS diff',
@@ -354,6 +348,16 @@ def get_args():
 
 
 ### MAIN ###
+
+markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
+#periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD CMIPS 5
+#periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIPS5
+#periods = ((1985, 2014),              (1991, 2020), (2041, 2070), (2071, 2100)) # CMIPS6
+periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
+periods_str = ['%d-%d' % (p[0], p[1]) for p in periods]
+season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
+norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
+
 
 if __name__ == '__main__':
     get_args()

@@ -213,8 +213,8 @@ def parse_args():
     print('')
 
     parser.add_argument(
-        '--stat', default='mean',
-        help='Statistics (mean=default, min, max)'
+        '-s', '--stat', required=True,
+        help='Statistics (mean, min, max)'
     )
 
     parser.add_argument(
@@ -231,10 +231,9 @@ def parse_args():
     )
     parser.add_argument(
         '--overlaps', action='store_true',
-        help='Input file directory'
+        help='Include overlapping models from previous project'
     )
     return parser.parse_args()
-
 
 
 ### MAIN ###
@@ -250,11 +249,11 @@ if __name__ == '__main__':
     if args.indir:
         inroot = args.indir
     elif '-tos' in uname: # NIRD or similar
-        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW/%s' % sub_path
-    elif uname == 'CMR-PC-158': # Work
-        inroot = 'D:/Data/EUR-11_norway/stats_v3/%s' % sub_path
+        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW5/%s' % sub_path
+    elif 'ppi-ext' in uname: # met.no
+        inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
     else: # home
-        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % sub_path
+        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3.NEW5/%s' % sub_path
 
     file = '%s_kss' % stat_op
     if args.overlaps:
@@ -277,6 +276,6 @@ if __name__ == '__main__':
         df = create_dataframe(stats, dims, stat_op, args.overlaps)
 
     print(df)
-    df.to_pickle(file + '.pkl')
+    #df.to_pickle(file + '.pkl')
     df.to_csv(file + '.csv', sep=';')
     print("File written:", file + '.csv')
