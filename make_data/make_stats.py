@@ -88,8 +88,11 @@ def make_ensemble_stats(inroot, stat_op, ref_per):
             ret = os.system(cmd3)
         else:
             print('skipping %s folder...' % dd)
-    os.remove('tmp1.nc')
-    os.remove('tmp2.nc')
+    try:
+        os.remove('tmp1.nc')
+        os.remove('tmp2.nc')
+    except:
+        pass
     
     if True:
         for ff in glob.glob(os.path.join(inroot, 'ens%s/*.nc' % op)):
@@ -277,6 +280,9 @@ if __name__ == '__main__':
     periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'ens-mean': 4, 'ens-min': 5, 'ens-max': 6}
     cdo = 'cdo'
+
+    uname = platform.uname()
+    #print(uname)
     
     args = parse_args()    
     dry = args.dry
@@ -284,23 +290,27 @@ if __name__ == '__main__':
     n = stat_ops[stat_op]
     modelname = args.model
 
-    uname = platform.uname()
-    print(uname)
     if uname.system != 'Linux':
         print('Exit. Must be run under Linux because it needs CDO and NCO')
         exit()
     if '-tos' in uname.node: # NIRD or similar
-        inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11'
-        outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW5'
-        #inroot = '/tos-project4/NS9076K/data/cordex-norway/EUR-11.OLD'
-        #outroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.OLD'
+        inbase = '/tos-project4/NS9076K/data/cordex-norway'
+        inroot = inbase + '/EUR-11'
+        outroot = inbase + '/stats_v3.NEW5'
+        #inroot = inbase + '/EUR-11.OLD'
+        #outroot = inbase + '/stats_v3.OLD'
         cdo = '/opt/cdo'
+    elif 'norceresearch.no' in uname.node:
+        inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
+        inroot = inbase + '/EUR-11'
+        outroot = inbase + '/stats_v3'
     elif 'ppi-ext' in uname.node: # met.no
-        inroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11'
-        outroot = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/stats_v3'
+        inbase = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway'
+        inroot = inbase + '/EUR-11'
+        outroot = inbase + '/stats_v3'
     else: # home
         inroot = 'C:/Dev/DATA/EUR-11'
-        outroot = 'C:/Dev/DATA/cordex-norway/stats_v3.OLD'
+        outroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
 
     if stat_op.startswith('ens-'):
         print('Reference period:', periods[int(args.ref_period)])

@@ -3,7 +3,7 @@
 save=--save
 
 
-for v in "TAS diff" "PR diff"
+for v in "TAS" "PR"
 do
 : <<'END'
     for s in ANN MAM JJA SON DJF

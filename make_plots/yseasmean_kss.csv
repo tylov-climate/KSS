@@ -1,4 +1,4 @@
-;Season;Experiment;Period;Institute;Model;Model Id;Ensemble;RCM Ver;TAS celsius;PR mm.year;TAS diff;PR diff;Previous Study
+;Årstid;Eksperiment;Periode;Institutt;Modell;Modell Id;Ensemble;RCM Ver;TAS celsius;PR mm.år;TAS endring;PR endring;Referansemodell
 0;ANN;historical;1971-2000;CLMcom-ETH;CNRM-CERFACS-CNRM-CM5;COSMO-crCLIM-v1-1;r1i1p1;v1;0.07037639405206164;1028.6439684050013;0.0;0.0;False
 1;ANN;historical;1971-2000;CLMcom-ETH;ICHEC-EC-EARTH;COSMO-crCLIM-v1-1;r12i1p1;v1;-0.043006505576158816;1140.713135715311;0.0;0.0;False
 2;ANN;historical;1971-2000;CLMcom-ETH;ICHEC-EC-EARTH;COSMO-crCLIM-v1-1;r1i1p1;v1;0.3947548791821873;1171.231416875988;0.0;0.0;False

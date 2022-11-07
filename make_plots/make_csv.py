@@ -29,7 +29,7 @@ last_study_models = [
     'MPI-M-MPI-ESM-LR_CCLM4-8-17_r1i1p1',
     'MOHC-HadGEM2-ES_RCA4_r1i1p1'
 ]
-
+'''
 overlaps_models = {
     #'CNRM-CM5': ['ALADIN_r1i1p1', 'ALARO_r1i1p1', 'RACMO_r1i1p1'],
     'CNRM-CM5': ['ALADIN63_r1i1p1', 'RACMO_r1i1p1'],
@@ -38,7 +38,14 @@ overlaps_models = {
     'MPI-ESM-LR': ['CCLM_r1i1p1', 'RCA_r1i1p1', 'REMO_r1i1p1', 'REMO_r2i1p1'],
     'NorESM1-M': ['RCA_r1i1p1', 'REMO_r1i1p1']
 }
-
+'''
+selected_models = {
+    'CNRM-CM5': ['ALADIN63_r1i1p1'],
+    'EC-EARTH': ['CCLM_r12i1p1', 'HIRHAM5_r3i1p1', 'RCA_r12i1p1'],
+    'HadGEM2-ES': ['RCA_r1i1p1', 'REMO_r1i1p1'],
+    'MPI-ESM-LR': ['CCLM_r1i1p1', 'REMO_r2i1p1'],
+    'NorESM1-M': ['RCA_r1i1p1', 'REMO_r1i1p1']
+}
 
 
 def load_mask():
@@ -129,12 +136,19 @@ def average_data(inroot, output):
     return stats, dims
 
 
-def create_dataframe(stats, dims, stat_op, use_rcp_overlaps=False):
+def create_dataframe(stats, dims, stat_op, use_rcp_selected=False):
     d = dims['inv']
+    '''
     m = {'Season': [], 'Experiment': [], 'Period': [],
          'Institute': [], 'Model': [], 'Model Id': [], 'Ensemble': [], 'RCM Ver': [],
          'TAS celsius': [], 'PR mm.year': [],
          'TAS diff': [], 'PR diff': [],
+    }
+    '''
+    m = {'Årstid': [], 'Eksperiment': [], 'Periode': [],
+         'Institutt': [], 'Modell': [], 'Modell Id': [], 'Ensemble': [], 'RCM Ver': [],
+         'TAS celsius': [], 'PR mm.år': [],
+         'TAS endring': [], 'PR endring': [],
     }
 
     pr_fac = 365.25 * 24 * 60 * 60
@@ -147,9 +161,9 @@ def create_dataframe(stats, dims, stat_op, use_rcp_overlaps=False):
                 model = model_name.split('_')
                 source = model[1].split('-')
 
-                if use_rcp_overlaps:
+                if use_rcp_selected:
                     match = False
-                    for key, val in overlaps_models.items():
+                    for key, val in selected_models.items():
                         if match: break
                         if model[1].endswith(key):           # 'Model' in csv
                             for mod in val:
@@ -173,23 +187,23 @@ def create_dataframe(stats, dims, stat_op, use_rcp_overlaps=False):
                 #pr_variance = stats[s][x][d[2]['timvar']][d[3]['pr']][n]
                 if not (math.isnan(tas_mean) and math.isnan(pr_mean)):
                     #print(season, exp_disp[0], exp_disp[1], model_name, tas_mean, pr_mean)
-                    m['Season'].append(season)
-                    m['Experiment'].append(exp_disp[0])
-                    m['Period'].append(exp_disp[1])
-                    m['Institute'].append(model[0])
-                    m['Model'].append(model[1])
-                    m['Model Id'].append(model[3])
+                    m['Årstid'].append(season)
+                    m['Eksperiment'].append(exp_disp[0])
+                    m['Periode'].append(exp_disp[1])
+                    m['Institutt'].append(model[0])
+                    m['Modell'].append(model[1])
+                    m['Modell Id'].append(model[3])
                     m['Ensemble'].append(model[2])
                     m['RCM Ver'].append(model[4])
                     m['TAS celsius'].append(tas_mean - 273.15)
-                    m['PR mm.year'].append(pr_mean * pr_fac)
+                    m['PR mm.år'].append(pr_mean * pr_fac)
 
                     if x > 0:
-                        m['TAS diff'].append(tas_mean - stats[s][0][o][d[3]['tas']][n])
-                        m['PR diff'].append(100 * (pr_mean - stats[s][0][o][d[3]['pr']][n]) / stats[s][0][o][d[3]['pr']][n])
+                        m['TAS endring'].append(tas_mean - stats[s][0][o][d[3]['tas']][n])
+                        m['PR endring'].append(100 * (pr_mean - stats[s][0][o][d[3]['pr']][n]) / stats[s][0][o][d[3]['pr']][n])
                     else:
-                        m['TAS diff'].append(0.0)
-                        m['PR diff'].append(0.0)
+                        m['TAS endring'].append(0.0)
+                        m['PR endring'].append(0.0)
 
     df = pd.DataFrame(m)
     # Merge models to match last_study_models[] signature.
@@ -200,7 +214,7 @@ def create_dataframe(stats, dims, stat_op, use_rcp_overlaps=False):
     last_study = models == last_study_models[0]
     for i in range(1, len(last_study_models)):
         last_study |= models == last_study_models[i]
-    df['Previous Study'] = last_study
+    df['Referansemodell'] = last_study
     return df
 
 
@@ -216,7 +230,6 @@ def parse_args():
         '-s', '--stat', required=True,
         help='Statistics (mean, min, max)'
     )
-
     parser.add_argument(
         '-f', '--csvfile',
         help='Input csv file'
@@ -230,8 +243,8 @@ def parse_args():
         help='Output file directory'
     )
     parser.add_argument(
-        '--overlaps', action='store_true',
-        help='Include overlapping models from previous project'
+        '--selected', action='store_true',
+        help='Use a selection of models only'
     )
     return parser.parse_args()
 
@@ -250,14 +263,17 @@ if __name__ == '__main__':
         inroot = args.indir
     elif '-tos' in uname: # NIRD or similar
         inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW5/%s' % sub_path
+    elif 'norceresearch.no' in uname:
+        inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
+        inroot = inbase + '/stats_v3/%s' % sub_path
     elif 'ppi-ext' in uname: # met.no
         inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
     else: # home
-        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3.NEW5/%s' % sub_path
+        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % sub_path
 
     file = '%s_kss' % stat_op
-    if args.overlaps:
-        file += '_overlaps'
+    if args.selected:
+        file += '_selected'
 
     print('Inroot:', inroot)
     print('Output:', file + '.csv')
@@ -273,7 +289,7 @@ if __name__ == '__main__':
         print(dims['exps'])
         print(dims['stat_ops'])
         print(dims['variables'])
-        df = create_dataframe(stats, dims, stat_op, args.overlaps)
+        df = create_dataframe(stats, dims, stat_op, args.selected)
 
     print(df)
     #df.to_pickle(file + '.pkl')
