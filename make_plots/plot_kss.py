@@ -39,7 +39,7 @@ def catplot1(df):
     df = df[df.Årstid == args.season]
     df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment == experiment]
-    df = df.sort_values('FullModell')
+    df = df.sort_values('FullModel')
     sns.set(style='whitegrid')
     g = sns.catplot(data=df, orient='h', x=variable, y='Modell', col='Modell Id', kind='bar', col_wrap=4,
                     sharex=False, aspect=1.6, height=2.4)
@@ -61,7 +61,7 @@ def catplot2(df):
     df = df[df.Årstid == args.season]
     df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment == experiment]
-    df = df.sort_values('FullModell')
+    df = df.sort_values('FullModel')
     sns.set(style='whitegrid')
     g = sns.catplot(data=df, orient='h', x=variable, y='Modell Id', col='Modell', kind='bar', col_wrap=4,
                     sharex=False, aspect=0.8, height=4.8)
@@ -83,11 +83,11 @@ def barplot(df):
     df = df[df.Årstid == args.season]
     df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment == experiment]
-    df = df.sort_values('FullModell')
+    df = df.sort_values('FullModel')
 
     sns.set(style='whitegrid')
     sns.set(rc={'figure.figsize':(11, 9.6)})
-    ax = sns.barplot(data=df, x=variable, y='FullModell') # orient='h'
+    ax = sns.barplot(data=df, x=variable, y='FullModel') # orient='h'
     ax.set_xlabel('Variabel: ' + variable + '. Periode: ' + periods_str[period] + ', ' + season_map2[args.season] + '. Scenario: ' + experiment) #, fontsize=12)
 
     if args.selected:
@@ -97,6 +97,35 @@ def barplot(df):
         ax.set_ylabel('Euro-CORDEX 11: Alle klimamodeller')
         ax.set_yticklabels(ax.get_yticklabels(), fontsize=6)
     ax.set_xticklabels(ax.get_xticks(), fontsize=10)
+    plt.tight_layout()
+    if args.save:
+        save_plot(ax.get_figure(), "barplot", variable)
+
+
+def kdeplot(df):
+    # Kernel density estimation
+    # https://seaborn.pydata.org/tutorial/distributions.html#kernel-density-estimation
+    df = df[df.Årstid == args.season]
+    #df = df[df.Periode == periods_str[period]]
+    df = df[df.Eksperiment == experiment]
+    #df = df.sort_values('FullModel')
+    print(df)
+    #sns.set(style='whitegrid')
+    sns.set(rc={'figure.figsize':(30, 25)})
+    ax = sns.displot(data=df, x=variable, hue='Periode', kind='kde', fill=True,
+                     height=10, aspect=1.5)
+    ax.fig.suptitle('Nedbør- og temperatur-endring, fastlands-norge, %s' % season_map2[args.season], fontsize=16, y=0.98)
+
+    #ax.fig.set_dpi(100)
+    #ax.set_xlabel('Variabel: ' + variable + '. Periode: ' + periods_str[period] + ', ' + season_map2[args.season] + '. Scenario: ' + experiment) #, fontsize=12)
+
+    #if args.selected:
+        #ax.set_ylabel('Euro-CORDEX 11: Utvalgte klimamodeller med 3 scenarioer')
+        #ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
+    #else:
+        #ax.set_ylabel('Euro-CORDEX 11: Alle klimamodeller')
+        #ax.set_yticklabels(ax.get_yticklabels(), fontsize=6)
+    #ax.set_xticklabels(ax.get_xticks(), fontsize=10)
     plt.tight_layout()
     if args.save:
         save_plot(ax.get_figure(), "barplot", variable)
@@ -192,7 +221,7 @@ def scatterplot_func(x, y, style, **kwargs):
 def geoplot():
     global periods_str, season_map
     varname = 'tas' if variable == 'TAS endring' or variable == 'TAS celsius' else 'pr'
-    nc_data = geoplot_load(varname, not args.abs)
+    nc_data = geoplot_load(varname, args.diff)
     nc_var = nc_data.variables[varname]
     rlat = nc_data.variables['rlat'][:]
     rlon = nc_data.variables['rlon'][:]
@@ -225,7 +254,7 @@ def geoplot():
         save_plot(fig, 'geoplot', variable)
 
 
-def geoplot_load(varname, diff=True):
+def geoplot_load(varname, diff):
     # load NetCDF file into variable
     fpath = 'yseas%s_%s_%s_ens%s' % (args.stat, periods_str[period], experiment, args.stat)
     if diff:
@@ -252,11 +281,6 @@ def geoplot_sub(rlat, rlon, var, fig, pos, title, type=1, res=30):
         res = plt.pcolormesh(rlon, rlat, var, transform=rotated_pole)
     return res
 
-
-def kde_plot():
-    # Kernel density estimation
-    # https://seaborn.pydata.org/tutorial/distributions.html#kernel-density-estimation
-    pass
 
 
 def save_plot(g, plotname, varname=''):
@@ -301,11 +325,19 @@ def get_args():
 
     parser.add_argument(
         '-t', '--type', required=True, #default='bar',
-        help='Plot type (bar, scatter, cat1, cat2, geo)'
+        help='Plot type (bar, scatter, kde, cat1, cat2, geo)'
     )
     parser.add_argument(
-        '-a', '--abs', action='store_true',
-        help='Absolute values instead of differences'
+        '--diff-exp', default=None,
+        help='look at difference between experiments'
+    )
+    parser.add_argument(
+        '--diff-per', default=None,
+        help='look at difference between experiments'
+    )
+    parser.add_argument(
+        '--diff', action='store_true',
+        help='difference instead of absolute values'
     )
     parser.add_argument(
         '-p', '--period', default=3,
@@ -333,7 +365,7 @@ def get_args():
         help='Season to be plotted (ANN=default, MAM, JJA, SON, DJF)'
     )
     parser.add_argument(
-        '-v', '--var', default='TAS endring',
+        '-v', '--var', default='TAS',
         help='Variable (TAS=default, PR)'
     )
     parser.add_argument(
@@ -377,13 +409,12 @@ if __name__ == '__main__':
         experiment = 'historical'
     elif args.experiment == 'historical':
         period = 1
-    variable = args.var
-    if args.abs:
-        if args.var == 'TAS' : variable = 'TAS celsius'
-        if args.var == 'PR': variable = 'PR mm.år'
-    else:
+    if args.diff:
         if args.var == 'TAS': variable = 'TAS endring'
         if args.var == 'PR': variable = 'PR endring'
+    else:
+        if args.var == 'TAS' : variable = 'TAS celsius'
+        if args.var == 'PR': variable = 'PR mm.år'
 
     csvfile = args.csvfile if args.csvfile else 'yseas%s_kss%s.csv' % (args.stat, selected)
     print(csvfile)
@@ -397,8 +428,8 @@ if __name__ == '__main__':
         axis=1
     )
 
-    df['FullModell'] = models
-    df = df[df.FullModell != 'MIROC-MIROC5_WRF361H_r1i1p1']
+    df['FullModel'] = models
+    df = df[df.FullModel != 'MIROC-MIROC5_WRF361H_r1i1p1']
 
     if args.type == 'bar':
         barplot(df)
@@ -408,14 +439,16 @@ if __name__ == '__main__':
         catplot2(df)
     elif args.type == 'geo':
         geoplot()
+    elif args.type == 'kde':
+        kdeplot(df)
     elif args.type == 'scatter':
         #sns.set_style('whitegrid')
         #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
         #sns.set(style='ticks')
-        if args.abs:
-            grid_scatterplot_abs(df)
-        else:
+        if args.diff:
             grid_scatterplot_diff(df)
+        else:
+            grid_scatterplot_abs(df)
     
     if not args.save:
         plt.show()
