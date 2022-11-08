@@ -88,7 +88,8 @@ def barplot(df):
     sns.set(style='whitegrid')
     sns.set(rc={'figure.figsize':(11, 9.6)})
     ax = sns.barplot(data=df, x=variable, y='FullModel') # orient='h'
-    ax.set_xlabel('Variabel: ' + variable + '. Periode: ' + periods_str[period] + ', ' + season_map2[args.season] + '. Scenario: ' + experiment) #, fontsize=12)
+    ax.set_xlabel('Periode: ' + periods_str[period] + ', ' + experiment + ', ' +
+                  season_map2[args.season] + ', ' + variable) #, fontsize=12)
 
     if args.selected:
         ax.set_ylabel('Euro-CORDEX 11: Utvalgte klimamodeller med 3 scenarioer')
@@ -106,15 +107,17 @@ def kdeplot(df):
     # Kernel density estimation
     # https://seaborn.pydata.org/tutorial/distributions.html#kernel-density-estimation
     df = df[df.Årstid == args.season]
+    #if experiment == 'historical':
     if period >= 0:
-        df = df[df.Periode == periods_str[period]]
-    df = df[(df.Eksperiment == experiment) | (df.Eksperiment == 'historical')]
-    #sns.set(style='whitegrid')
+        df = df[df.Eksperiment == experiment]
+    else:
+        df = df[(df.Eksperiment == experiment) | (df.Eksperiment == 'historical')]
     sns.set(rc={'figure.figsize':(30, 25)})
     ax = sns.displot(data=df, x=variable, hue='Periode', kind='kde', fill=True,
                      height=10, aspect=1.5)
-    per = periods_str[period] if period >= 0 else "Alle perioder"
-    tit = 'Variabel: ' + variable + '. ' + per + ', ' + season_map2[args.season] + '. Scenario: ' + experiment
+
+    sel = 'utvalgte modeller' if args.selected else 'alle modeller'
+    tit =  'Alle perioder, ' + experiment + ', ' + sel + ', ' + season_map2[args.season] + '.'
     ax.fig.suptitle('Euro-CORDEX 11: ' + tit, fontsize=16, y=0.98)
 
     #ax.fig.set_dpi(100)
@@ -307,9 +310,9 @@ else: # home
 outroot = '../plots'
 
 exp_names = {
-    'hist-0': 'historical_1971-2000', 
-    'hist-1': 'historical_1985-2014',
-    'hist-2': 'historical_1991-2020',
+    'histo-0': 'historical_1971-2000', 
+    'histo-1': 'historical_1985-2014',
+    'histo-2': 'historical_1991-2020',
     'rcp26-3': 'rcp26_2041-2070', 'rcp26-4': 'rcp26_2071-2100',
     'rcp45-3': 'rcp45_2041-2070', 'rcp45-4': 'rcp45_2071-2100',
     'rcp85-3': 'rcp85_2041-2070', 'rcp85-4': 'rcp85_2071-2100',
@@ -332,8 +335,8 @@ def get_args():
         help='Time period: default=1 (-1:all, ' + ', '.join(['%d:%s' % (i, periods_str[i]) for i in range(len(periods))]) + ')'
     )
     parser.add_argument(
-        '-e', '--experiment', default='rcp45',
-        help='Experiment (all, rcp26, rcp45=default, rcp85)'
+        '-e', '--experiment', default='historical',
+        help='Experiment (historical=default, rcp26, rcp45, rcp85)'
     )
     parser.add_argument(
         '-s', '--season', default='ANN',
@@ -352,7 +355,7 @@ def get_args():
         help='Statistics (mean=default, min, max)'
     )
     parser.add_argument(
-        '--diff', default=None,
+        '-d', '--diff', default=None,
         help='Difference to experiment (hist-0, hist-1, hist-2, rcp26-3, rcp26-4, rcp45-3, rcp45-4, rcp85-3, rcp85-4)'
     )
     parser.add_argument(
@@ -397,7 +400,7 @@ if __name__ == '__main__':
     selected = '_selected' if args.selected else ''
     period = int(args.time_period)
     experiment = args.experiment
-    if period in (0, 1, 2):
+    if args.plot != 'kde' and period in (0, 1, 2):
         experiment = 'historical'
     #elif experiment == 'historical':
     #   period = 1
@@ -409,8 +412,8 @@ if __name__ == '__main__':
     df = pd.read_csv(csvfile, index_col=0, sep=';')
 
     if args.diff:
-        if args.var == 'TAS': variable = 'TAS-%s' % exp_names[args.diff]
-        if args.var == 'PR': variable = 'PR-%s' % exp_names[args.diff]
+        if args.var == 'TAS': variable = 'TAS diff-%s' % exp_names[args.diff]
+        if args.var == 'PR': variable = 'PR diff-%s' % exp_names[args.diff]
     else:
         if args.var == 'TAS' : variable = 'TAS celsius'
         if args.var == 'PR': variable = 'PR mm.år'

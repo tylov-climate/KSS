@@ -148,14 +148,14 @@ def create_dataframe(stats, dims, stat_op, use_rcp_selected=False):
     m = {'Årstid': [], 'Eksperiment': [], 'Periode': [],
          'Institutt': [], 'Modell': [], 'Modell Id': [], 'Ensemble': [], 'RCM Ver': [],
          'TAS celsius': [], 'PR mm.år': [],
-        'TAS-historical_1971-2000': [], 'TAS-historical_1985-2014': [], 'TAS-historical_1991-2020': [],
-        'TAS-rcp26_2041-2070': [], 'TAS-rcp26_2071-2100': [],
-        'TAS-rcp45_2041-2070': [], 'TAS-rcp45_2071-2100': [],
-        'TAS-rcp85_2041-2070': [], 'TAS-rcp85_2071-2100': [],
-        'PR-historical_1971-2000': [], 'PR-historical_1985-2014': [], 'PR-historical_1991-2020': [],
-        'PR-rcp26_2041-2070': [], 'PR-rcp26_2071-2100': [],
-        'PR-rcp45_2041-2070': [], 'PR-rcp45_2071-2100': [],
-        'PR-rcp85_2041-2070': [], 'PR-rcp85_2071-2100': [],
+        'TAS diff-historical_1971-2000': [], 'TAS diff-historical_1985-2014': [], 'TAS diff-historical_1991-2020': [],
+        'TAS diff-rcp26_2041-2070': [], 'TAS diff-rcp26_2071-2100': [],
+        'TAS diff-rcp45_2041-2070': [], 'TAS diff-rcp45_2071-2100': [],
+        'TAS diff-rcp85_2041-2070': [], 'TAS diff-rcp85_2071-2100': [],
+        'PR diff-historical_1971-2000': [], 'PR diff-historical_1985-2014': [], 'PR diff-historical_1991-2020': [],
+        'PR diff-rcp26_2041-2070': [], 'PR diff-rcp26_2071-2100': [],
+        'PR diff-rcp45_2041-2070': [], 'PR diff-rcp45_2071-2100': [],
+        'PR diff-rcp85_2041-2070': [], 'PR diff-rcp85_2071-2100': [],
     }
 
     pr_fac = 365.25 * 24 * 60 * 60
@@ -208,11 +208,11 @@ def create_dataframe(stats, dims, stat_op, use_rcp_selected=False):
                     for x1 in range(len(dims['exps'])):
                         name = dims['exps'][x1]
                         if x1 != x:
-                            m['TAS-%s' % name].append(stats[s][x1][o][d[3]['tas']][n] - tas_mean)
-                            m['PR-%s' % name].append(100 * (stats[s][x1][o][d[3]['pr']][n] - pr_mean) / pr_mean)
+                            m['TAS diff-%s' % name].append(stats[s][x1][o][d[3]['tas']][n] - tas_mean)
+                            m['PR diff-%s' % name].append(100 * (stats[s][x1][o][d[3]['pr']][n] - pr_mean) / pr_mean)
                         else:
-                            m['TAS-%s' % name].append(0.0)
-                            m['PR-%s' % name].append(0.0)
+                            m['TAS diff-%s' % name].append(0.0)
+                            m['PR diff-%s' % name].append(0.0)
 
     df = pd.DataFrame(m)
     # Merge models to match last_study_models[] signature.
