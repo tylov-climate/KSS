@@ -310,7 +310,7 @@ if __name__ == '__main__':
         outroot = inbase + '/stats_v3'
     else: # home
         inroot = 'C:/Dev/DATA/EUR-11'
-        outroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
+        outroot = 'C:/Dev/DATA/cordex-norway/stats_v3.NEW5'
 
     if stat_op.startswith('ens-'):
         print('Reference period:', periods[int(args.ref_period)])
