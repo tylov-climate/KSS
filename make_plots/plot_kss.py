@@ -121,6 +121,9 @@ def kdeplot(df):
     ax.fig.suptitle('Euro-CORDEX 11: ' + tit, fontsize=16, y=0.98)
 
     #ax.fig.set_dpi(100)
+    #wm = plt.get_current_fig_manager()
+    #wm.window.state('zoomed')
+    #wm.full_screen_toggle()
     plt.tight_layout()
     if args.save:
         save_plot(ax.get_figure(), "kdeplot", variable)
