@@ -271,14 +271,14 @@ if __name__ == '__main__':
     if args.indir:
         inroot = args.indir
     elif '-tos' in uname: # NIRD or similar
-        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW5/%s' % sub_path
+        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3/%s' % sub_path
     elif 'norceresearch.no' in uname:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
         inroot = inbase + '/stats_v3/%s' % sub_path
     elif 'ppi-ext' in uname: # met.no
         inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
     else: # home
-        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3.NEW5/%s' % sub_path
+        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % sub_path
 
     file = '%s_kss' % stat_op
     if args.selected:

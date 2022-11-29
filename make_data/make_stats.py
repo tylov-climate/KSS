@@ -61,26 +61,27 @@ def find_period(d1, d2, periods):
     return 0, -1
 
 
-def make_ensemble_stats(inroot, stat_op, ref_per):
-    op = stat_op.split('-')[1]
-    for dd in glob.glob(os.path.join(inroot, 'yseas%s/*' % op)):
+def make_ensemble_stats(inroot, interval, stat_op, ref_per):
+    op = interval + stat_op
+    yper = '' if interval == 'yseas' else interval
+    for dd in glob.glob(os.path.join(inroot, '%s/*' % op)):
         base = os.path.basename(dd)
-        outdir = os.path.join(inroot, 'ens%s' % op)
+        outdir = os.path.join(inroot, 'ens%s%s' % (yper, stat_op))
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
-        outfile = os.path.join(outdir, base + '_ens%s.nc' % op)
+        outfile = os.path.join(outdir, base + '_ens%s.nc' % stat_op) # stat_op not needed: could use just '_ens.nc'
         print('input:', dd)
         print('output:', outfile)
 
         if base.startswith('pr_'):
-            cmd1 = cdo + ' -L -O ens%s %s/*.nc %s' % (op, dd, 'tmp1.nc')
+            cmd1 = cdo + ' -L -O ens%s%s %s/*.nc %s' % (yper, stat_op, dd, 'tmp1.nc')
             cmd2 = cdo + ' -L -O setattribute,pr@units="mm year-1" %s %s' % ('tmp1.nc', 'tmp2.nc')
             cmd3 = 'ncap2 -O -s "pr=31557600*pr" %s %s' % ('tmp2.nc', outfile)
             ret = os.system(cmd1)
             ret = os.system(cmd2)
             ret = os.system(cmd3)
         elif base.startswith('tas_'):
-            cmd1 = cdo + ' -L -O ens%s %s/*.nc %s' % (op, dd, 'tmp1.nc')
+            cmd1 = cdo + ' -L -O ens%s%s %s/*.nc %s' % (yper, stat_op, dd, 'tmp1.nc')
             cmd2 = cdo + ' -L -O setattribute,tas@units="Celsius" %s %s' % ('tmp1.nc', 'tmp2.nc')
             cmd3 = 'ncap2 -O -s "tas=tas-273.15f" %s %s' % ('tmp2.nc', outfile)
             ret = os.system(cmd1)
@@ -95,7 +96,7 @@ def make_ensemble_stats(inroot, stat_op, ref_per):
         pass
     
     if True:
-        for ff in glob.glob(os.path.join(inroot, 'ens%s/*.nc' % op)):
+        for ff in glob.glob(os.path.join(inroot, 'ens%s%s/*.nc' % (yper, stat_op))):
             base = os.path.basename(ff)
             part = base.split('_')
             if part[3] == 'histo':
@@ -103,7 +104,7 @@ def make_ensemble_stats(inroot, stat_op, ref_per):
             var = part[0]
             # fhist ref?
             fhist = os.path.join(os.path.dirname(ff), '_'.join((part[0], part[1], '%d-%d_histo' % (ref_per[0], ref_per[1]), part[4])))
-            outdir = os.path.join(inroot, 'ensdiff')
+            outdir = os.path.join(inroot, 'ens%sdiff' % yper)
             outfile = os.path.join(outdir, base.replace('.nc', '_diff.nc'))
             print('computing diff:', outfile)
 
@@ -120,11 +121,12 @@ def make_ensemble_stats(inroot, stat_op, ref_per):
 # hist => 2005
 # rcp4.5 start 2006
 
-def make_stats(inroot, outroot, stat_op, periods, modelname):
+def make_stats(inroot, outroot, interval, stat_op, periods, modelname):
     print(inroot)
     if inroot[-1] != '/':
         inroot += '/'
-    outroot = os.path.join(outroot, 'yseas%s' % stat_op)
+    op = interval + stat_op
+    outroot = os.path.join(outroot, op)
     if not os.path.isdir(outroot):
         os.makedirs(outroot)
 
@@ -147,7 +149,6 @@ def make_stats(inroot, outroot, stat_op, periods, modelname):
                 elif experiment_id != 'historical':
                     continue
 
-            op = 'yseas' + stat_op
             period_id = '%d-%d' % (per[0], per[1])
             experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, expid, ensemble_id, source_id, rcm_version_id, op, create_ver_id)
             outfile = os.path.join(outroot, '%s_%s_%s_%s' % (var_id, op, period_id, expid[:5]), experiment + '_%s.nc' % period_id)
@@ -249,13 +250,21 @@ def parse_args():
         help='Only print the operations'
     )
     parser.add_argument(
+        '-e', '--ensemble',  action='store_true',
+        help='Create ensemble statistic files over all or selected models'
+    )
+    parser.add_argument(
         '-r', '--ref-period',  default=1,
-        help='Ref. hist period: default=1 (' + ', '.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
+        help='Ref. hist period:  1=default (' + ', '.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
 
     )
     parser.add_argument(
         '-s', '--stat',  required=True,
-        help='stat operation: REQUIRED (mean, min, max, ens-mean, ens-min, ens-max)'
+        help='stat operation: (' + ', '.join([k for k in stat_ops.keys()]) + ')'
+    )
+    parser.add_argument(
+        '--interval',  default='yseas',
+        help='statstics interval: (yseas[=default], ymon)'
     )
     parser.add_argument(
         '-i', '--indir', default=None,
@@ -275,10 +284,10 @@ def parse_args():
 
 if __name__ == '__main__':
     #periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD MIPS5
-    #periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIPS5
-    #periods = ((1985, 2014), (1991, 2020),              (2041, 2070), (2071, 2100)) # CMIPS6
+    #periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIP5
+    #periods = ((1985, 2014), (1991, 2020),              (2041, 2070), (2071, 2100)) # CMIP6
     periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
-    stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'ens-mean': 4, 'ens-min': 5, 'ens-max': 6}
+    stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'std': 4}
     cdo = 'cdo'
 
     uname = platform.uname()
@@ -296,7 +305,7 @@ if __name__ == '__main__':
     if '-tos' in uname.node: # NIRD or similar
         inbase = '/tos-project4/NS9076K/data/cordex-norway'
         inroot = inbase + '/EUR-11'
-        outroot = inbase + '/stats_v3.NEW5'
+        outroot = inbase + '/stats_v3'
         #inroot = inbase + '/EUR-11.OLD'
         #outroot = inbase + '/stats_v3.OLD'
         cdo = '/opt/cdo'
@@ -310,10 +319,10 @@ if __name__ == '__main__':
         outroot = inbase + '/stats_v3'
     else: # home
         inroot = 'C:/Dev/DATA/EUR-11'
-        outroot = 'C:/Dev/DATA/cordex-norway/stats_v3.NEW5'
+        outroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
 
-    if stat_op.startswith('ens-'):
+    if args.ensemble:
         print('Reference period:', periods[int(args.ref_period)])
-        make_ensemble_stats(outroot, stat_op, periods[int(args.ref_period)])
+        make_ensemble_stats(outroot, args.interval, stat_op, periods[int(args.ref_period)])
     else:
-    	make_stats(inroot, outroot, stat_op, periods, modelname)
+    	make_stats(inroot, outroot, args.interval, stat_op, periods, modelname)

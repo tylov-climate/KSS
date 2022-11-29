@@ -118,13 +118,13 @@ def kdeplot(df):
 
     sel = 'utvalgte modeller' if args.selected else 'alle modeller'
     tit =  'Alle perioder, ' + experiment + ', ' + sel + ', ' + season_map2[args.season] + '.'
-    ax.fig.suptitle('Euro-CORDEX 11: ' + tit, fontsize=16, y=0.98)
+    #ax.fig.suptitle('Euro-CORDEX 11: ' + tit, fontsize=16, y=0.98)
 
     #ax.fig.set_dpi(100)
     #wm = plt.get_current_fig_manager()
     #wm.window.state('zoomed')
     #wm.full_screen_toggle()
-    plt.tight_layout()
+    #plt.tight_layout()
     if args.save:
         save_plot(ax.get_figure(), "kdeplot", variable)
 
@@ -303,13 +303,13 @@ def save_plot(g, plotname, varname=''):
 
 uname = platform.uname()[1]
 if '-tos' in uname: # NIRD or similar
-    inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3.NEW5'
+    inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3'
 elif 'norceresearch.no' in uname:
     inroot = os.path.expanduser('~') + '/proj/KSS/cordex-norway/stats_v3'
 elif 'ppi-ext' in uname: # met.no
     inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
 else: # home
-    inroot = 'C:/Dev/DATA/cordex-norway/stats_v3.NEW5'
+    inroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
 outroot = '../plots'
 
 exp_names = {
