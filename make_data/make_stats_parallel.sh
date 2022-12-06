@@ -1,8 +1,14 @@
-iv=ymon
+iv=yseas
+op=mean
+#op=min
+
 #op=mean
-op=max
+#op=max
+#op=min
+
 #op=mean --ensemble
 #op=max --ensemble
+#op=min --ensemble
 if [ ! -z $1 ]; then op=$1; fi
 
 echo "generate log files for $op"

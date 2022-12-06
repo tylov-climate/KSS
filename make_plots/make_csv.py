@@ -57,9 +57,12 @@ def load_mask():
 # Save load mean of the statistical data over periods and seasons. (avg, variance, ...)
 
 def average_data(inroot, output):
-    seasons, exps, stat_ops, variables, models = ('ANN', 'MAM', 'JJA', 'SON', 'DJF'), [], [], [], []
+    exps, stat_ops, variables, models = [], [], [], []
+    interval_seasons = ('ANN', 'MAM', 'JJA', 'SON', 'DJF')
+    interval_months = ('ANN', 'Jan', 'Feb', 'Mar', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Des')
     dirpattern = '/*'
     #print(inroot, output)
+    seasons = interval_seasons if args.interval == 'yseas' else interval_months
 
     for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
@@ -111,8 +114,10 @@ def average_data(inroot, output):
             #print(var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period)
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
-
-            season_all = ('DJF', 'MAM', 'JJA', 'SON', 'ANN')
+            if args.interval == 'yseas':
+                season_all = ('DJF', 'MAM', 'JJA', 'SON', 'ANN')
+            else:
+                season_all = seasons[1:] + seasons[:1]
 
             with nc4.Dataset(path) as src:
                 for ncvname, ncvar in src.variables.items():
@@ -240,6 +245,10 @@ def parse_args():
         help='Statistics (mean, min, max)'
     )
     parser.add_argument(
+        '--interval', default='yseas',
+        help='Interval (yseas=default, ymon)'
+    )
+    parser.add_argument(
         '-f', '--csvfile',
         help='Input csv file'
     )
@@ -265,7 +274,7 @@ if __name__ == '__main__':
 
     args = parse_args()
 
-    stat_op = 'yseas%s' % args.stat
+    stat_op = '%s%s' % (args.interval, args.stat) # e.g. yseasmean
     sub_path = stat_op
 
     if args.indir:

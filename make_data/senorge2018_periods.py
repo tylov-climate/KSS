@@ -32,9 +32,9 @@ def senorge2018_periods(inroot, outroot):
 
 # MAIN
 
-periods = ((1971, 2000), (1985, 2014), (1991, 2020)) # , (2041, 2070), (2071, 2100)) # 5+6
+periods = ((1971, 2000), (1985, 2014), (1991, 2020), (1971, 2020))
 intervals = ('yseas', 'ymon')
-operators = ('mean', 'max') # , 'min', 'std')
+operators = ('mean', 'max', 'min') #, 'std')
 variables = ('pr', 'tas')
 
 if __name__ == '__main__':

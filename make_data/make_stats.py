@@ -121,7 +121,7 @@ def make_ensemble_stats(inroot, interval, stat_op, ref_per):
 # hist => 2005
 # rcp4.5 start 2006
 
-def make_stats(inroot, outroot, interval, stat_op, periods, modelname):
+def make_stats(inroot, outroot, interval, stat_op, periods, institute):
     print(inroot)
     if inroot[-1] != '/':
         inroot += '/'
@@ -130,7 +130,7 @@ def make_stats(inroot, outroot, interval, stat_op, periods, modelname):
     if not os.path.isdir(outroot):
         os.makedirs(outroot)
 
-    for dd in glob.glob(os.path.join(inroot, modelname + '/*/*/*/*/*/day/*/*')):
+    for dd in glob.glob(os.path.join(inroot, institute + '/*/*/*/*/*/day/*/*')):
         subpath = dd.replace(inroot, '')
         institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id = subpath.split('/')
         #print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
@@ -140,8 +140,8 @@ def make_stats(inroot, outroot, interval, stat_op, periods, modelname):
             period_files = []
             tmp_files = []
 
-            # Re-categorize 'rcp45' for years < 2022 to 'historical',
-            # and skip rcp26 and rcp85 for years < 2022
+            # Re-categorize 'rcp45' for years <= 2020 to 'historical',
+            # and skip rcp26 and rcp85 for years <= 2020
             expid = experiment_id
             if per[1] <= 2020:
                 if experiment_id == 'rcp45':
@@ -238,6 +238,8 @@ def make_stats(inroot, outroot, interval, stat_op, periods, modelname):
                 os.remove(file)
 
 
+# cdo timmean ...
+
 def parse_args():
     import argparse
 
@@ -280,13 +282,14 @@ def parse_args():
     )
     return parser.parse_args()
 
-# Create mean and variance average data over all the periods, seasons (full = all seasons)
+# Create mean, min, max or std data over all the periods, seasons (full = all seasons)
 
 if __name__ == '__main__':
     #periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD MIPS5
     #periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIP5
     #periods = ((1985, 2014), (1991, 2020),              (2041, 2070), (2071, 2100)) # CMIP6
-    periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
+    periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100), (1971, 2020)) # 5+6+full
+    #periods = ((1971, 2020),) # full period only
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'std': 4}
     cdo = 'cdo'
 
@@ -297,7 +300,7 @@ if __name__ == '__main__':
     dry = args.dry
     stat_op = args.stat
     n = stat_ops[stat_op]
-    modelname = args.model
+    institute = args.model
 
     if uname.system != 'Linux':
         print('Exit. Must be run under Linux because it needs CDO and NCO')
@@ -325,4 +328,4 @@ if __name__ == '__main__':
         print('Reference period:', periods[int(args.ref_period)])
         make_ensemble_stats(outroot, args.interval, stat_op, periods[int(args.ref_period)])
     else:
-    	make_stats(inroot, outroot, args.interval, stat_op, periods, modelname)
+    	make_stats(inroot, outroot, args.interval, stat_op, periods, institute)
