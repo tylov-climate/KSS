@@ -126,19 +126,22 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
     if inroot[-1] != '/':
         inroot += '/'
     op = interval + stat_op
-    outroot = os.path.join(outroot, op)
-    if not os.path.isdir(outroot):
-        os.makedirs(outroot)
+    outroot_op = os.path.join(outroot, op)
+    if not os.path.isdir(outroot_op):
+        os.makedirs(outroot_op)
 
-    for dd in glob.glob(os.path.join(inroot, institute + '/*/*/*/*/*/day/*/*')):
-        subpath = dd.replace(inroot, '')
-        institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id = subpath.split('/')
-        #print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
-        if not (var_id == 'pr' or var_id == 'tas'):
-            continue
-        for per in periods:
-            period_files = []
-            tmp_files = []
+    for per in [periods[int(i)] for i in args.periods.split(',')]:
+        filemap = {}
+        period_id = '%d-%d' % (per[0], per[1])
+
+        tmpdir = os.path.join(outroot, 'temp_%s_%s_%s' % (institute, op, period_id))
+
+        for dd in glob.glob(os.path.join(inroot, institute + '/*/*/*/*/*/day/*/*')):
+            subpath = dd.replace(inroot, '')
+            institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id = subpath.split('/')
+            #print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
+            if not (var_id == 'pr' or var_id == 'tas'):
+                continue
 
             # Re-categorize 'rcp45' for years <= 2020 to 'historical',
             # and skip rcp26 and rcp85 for years <= 2020
@@ -149,13 +152,11 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
                 elif experiment_id != 'historical':
                     continue
 
-            period_id = '%d-%d' % (per[0], per[1])
             experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, expid, ensemble_id, source_id, rcm_version_id, op, create_ver_id)
-            outfile = os.path.join(outroot, '%s_%s_%s_%s' % (var_id, op, period_id, expid[:5]), experiment + '_%s.nc' % period_id)
-            odir = os.path.dirname(outfile)
-            oname = os.path.basename(outfile)
+            outfile = os.path.join(outroot_op, '%s_%s_%s_%s' % (var_id, op, period_id, expid[:5]), experiment + '_%s.nc' % period_id)
+            input_files = []
             
-            if not dry and os.path.isfile(outfile):
+            if not args.dry and os.path.isfile(outfile):
                 print('    ...exists')
                 continue
 
@@ -170,38 +171,37 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
                     mfile = file
                 else:
                     # Create tmpfiles with data inside the selected date range only.
-                    #tmpfile = os.path.join(outroot, str(uuid.uuid4()) + '.nc')
-                    tmpfile = os.path.join(outroot, base + '-TRUNCATED-%s.nc' % period_id)
-                    tmp_files.append(tmpfile)
+                    tmpfile = os.path.join(tmpdir, base + '-TRUNC-%s.nc' % period_id)
                     mfile = tmpfile
                     cmd = cdo + " -L copy -seldate,%d-01-01,%d-12-31 '%s' %s" % (per[0], per[1], file, tmpfile)
-                    if not dry:
+                    if not args.dry:
+                        if not os.path.isdir(tmpdir):
+                            os.makedirs(tmpdir)
                         ret = os.system(cmd)
 
-                period_files.append(mfile)
+                input_files.append(mfile)
 
-            if len(period_files) == 0:
+            if len(input_files) == 0:
                 continue
-            
-            print("CDO", op)
+            try:
+                filemap[outfile] += input_files 
+            except:
+                filemap[outfile] = input_files
+
+        for outfile, input_files in filemap.items():
+            odir = os.path.dirname(outfile)
+            oname = os.path.basename(outfile)
+            print("CDO", op, period_id)
             print('  =>', oname)
             # Temp outfile in root output, to be moved
             tmpfile = os.path.join(outroot, oname)
-            infiles = sorted([os.path.join(inroot, f) for f in period_files])
             infiles_str = ''
-            for f in infiles:
+            for f in sorted(input_files):
                 print('    ', os.path.basename(f))
                 infiles_str += ' ' + f
-            '''
-            infiles = os.path.join(inroot, period_files[0])
-            print('    ', os.path.basename(period_files[0]))
-            for f in period_files[1:]:
-                infiles += ' ' + os.path.join(inroot, f)
-                print('    ', os.path.basename(f))
-            '''
             # Concatenate all files
             cmd = cdo + " -L %s -cat '%s' %s" % (op, infiles_str, tmpfile)
-            if dry:
+            if args.dry:
                 continue
             ret = os.system(cmd)
 
@@ -211,12 +211,6 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
                 os.remove(tmpfile)
                 os.rename(tmpfile + '.nc', tmpfile)
             
-            if os.path.isfile(outfile):
-                cmd = cdo + " -L cat '%s %s' %s.nc" % (outfile, tmpfile, tmpfile)
-                ret = os.system(cmd)
-                os.remove(tmpfile)
-                os.rename(tmpfile + '.nc', tmpfile)
-
             '''
             # change to mm/year
             if var_id == 'pr' and ret == 0:
@@ -228,15 +222,10 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
             if ret == 0:
                 if not os.path.isdir(odir):
                     os.makedirs(odir)
-                    #print('    Created dir:', odir)
                 os.rename(tmpfile, outfile)
-                #print('    Created file.', oname)
-            #else:
-            #    print('Return status:', ret)
 
-            for file in tmp_files:
-                os.remove(file)
-
+        if not args.dry and os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
 
 # cdo timmean ...
 
@@ -252,20 +241,23 @@ def parse_args():
         help='Only print the operations'
     )
     parser.add_argument(
-        '-e', '--ensemble',  action='store_true',
+        '-e', '--ensemble', action='store_true',
         help='Create ensemble statistic files over all or selected models'
     )
     parser.add_argument(
-        '-r', '--ref-period',  default=1,
-        help='Ref. hist period:  1=default (' + ', '.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
-
+        '-p', '--periods', default='0,1,2,3,4,5',
+        help='Periods comma-separated num: (' + ','.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
     )
     parser.add_argument(
-        '-s', '--stat',  required=True,
+        '-r', '--ref-period', default=1,
+        help='Ref. hist period: 1=default (' + ','.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
+    )
+    parser.add_argument(
+        '-s', '--stat', required=True,
         help='stat operation: (' + ', '.join([k for k in stat_ops.keys()]) + ')'
     )
     parser.add_argument(
-        '--interval',  default='yseas',
+        '--interval', default='yseas',
         help='statstics interval: (yseas[=default], ymon)'
     )
     parser.add_argument(
@@ -277,8 +269,8 @@ def parse_args():
         help='Output file directory'
     )
     parser.add_argument(
-        '-m', '--model', default='*',
-        help='Input model name: default "*"'
+        '-t', '--institute', required=True,
+        help='Input institute name: default "*"'
     )
     return parser.parse_args()
 
@@ -288,8 +280,7 @@ if __name__ == '__main__':
     #periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD MIPS5
     #periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIP5
     #periods = ((1985, 2014), (1991, 2020),              (2041, 2070), (2071, 2100)) # CMIP6
-    periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100), (1971, 2020)) # 5+6+full
-    #periods = ((1971, 2020),) # full period only
+    periods = ((1971, 2020), (1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # full+5+6
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'std': 4}
     cdo = 'cdo'
 
@@ -297,10 +288,9 @@ if __name__ == '__main__':
     #print(uname)
     
     args = parse_args()    
-    dry = args.dry
     stat_op = args.stat
     n = stat_ops[stat_op]
-    institute = args.model
+    institute = args.institute
 
     if uname.system != 'Linux':
         print('Exit. Must be run under Linux because it needs CDO and NCO')

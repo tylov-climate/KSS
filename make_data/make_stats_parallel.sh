@@ -1,40 +1,47 @@
-iv=yseas
-op=mean
-#op=min
-
-#op=mean
-#op=max
-#op=min
-
 #op=mean --ensemble
-#op=max --ensemble
-#op=min --ensemble
-if [ ! -z $1 ]; then op=$1; fi
+#if [ ! -z $1 ]; then op=$1; fi
+
+n=0
+nthreads=12
+
+for iv in yseas ymon; do
+for op in mean max min; do
 
 echo "generate log files for $op"
-for m in CLMcom CLMcom-BTU CLMcom-ETH CNRM DMI GERICS ICTP IPSL KNMI MOHC MPI-CSC RMIB-UGent SMHI UHOH; do
-    echo start $m
-    python make_stats.py --dry -s $op --interval $iv -m $m > logs/$m.log
+for t in CLMcom CLMcom-BTU CLMcom-ETH CNRM DMI GERICS ICTP IPSL KNMI MOHC MPI-CSC RMIB-UGent SMHI UHOH; do
+    echo start $t
+    python make_stats.py --dry -s $op --interval $iv -t $t > logs/$t-$iv$op.log
 done
 
 echo "run $op stats the background"
-for m in CLMcom CLMcom-BTU CLMcom-ETH CNRM DMI GERICS ICTP IPSL KNMI MOHC MPI-CSC RMIB-UGent SMHI UHOH; do
-    python make_stats.py -s $op --interval $iv -m $m >& /dev/null &
+for t in CLMcom CLMcom-BTU CLMcom-ETH CNRM DMI GERICS ICTP IPSL KNMI MOHC MPI-CSC RMIB-UGent SMHI UHOH; do
+    while :; do
+	    if [ $(jobs -p|wc -l) -lt $nthreads ]; then
+            ((n++))
+            echo "start $n: $t-$iv$op"
+            python make_stats.py -s $op --interval $iv -t $t >& /dev/null &
+            break
+        fi
+        sleep 0.5s
+    done
+done
+
+done
 done
 
 exit
 
-python make_stats.py -s $op --interval $iv CLMcom
-python make_stats.py -s $op --interval $iv CLMcom-BTU
-python make_stats.py -s $op --interval $iv CLMcom-ETH
-python make_stats.py -s $op --interval $iv CNRM
-python make_stats.py -s $op --interval $iv DMI
-python make_stats.py -s $op --interval $iv GERICS
-python make_stats.py -s $op --interval $iv ICTP
-python make_stats.py -s $op --interval $iv IPSL
-python make_stats.py -s $op --interval $iv KNMI
-python make_stats.py -s $op --interval $iv MOHC
-python make_stats.py -s $op --interval $iv MPI-CSC
-python make_stats.py -s $op --interval $iv RMIB-UGent
-python make_stats.py -s $op --interval $iv SMHI
-python make_stats.py -s $op --interval $iv UHOH
+python make_stats.py -s $op --interval $iv -t CLMcom
+python make_stats.py -s $op --interval $iv -t CLMcom-BTU
+python make_stats.py -s $op --interval $iv -t CLMcom-ETH
+python make_stats.py -s $op --interval $iv -t CNRM
+python make_stats.py -s $op --interval $iv -t DMI
+python make_stats.py -s $op --interval $iv -t GERICS
+python make_stats.py -s $op --interval $iv -t ICTP
+python make_stats.py -s $op --interval $iv -t IPSL
+python make_stats.py -s $op --interval $iv -t KNMI
+python make_stats.py -s $op --interval $iv -t MOHC
+python make_stats.py -s $op --interval $iv -t MPI-CSC
+python make_stats.py -s $op --interval $iv -t RMIB-UGent
+python make_stats.py -s $op --interval $iv -t SMHI
+python make_stats.py -s $op --interval $iv -t UHOH

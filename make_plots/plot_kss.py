@@ -388,10 +388,10 @@ def get_args():
 ### MAIN ###
 
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
-#periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD CMIPS 5
-#periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIPS5
-#periods = ((1985, 2014),              (1991, 2020), (2041, 2070), (2071, 2100)) # CMIPS6
-periods = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
+#periods = ((1951, 2000),                                           (2031, 2060), (2071, 2100)) # OLD CMIPS 5
+#periods = ((1971, 2000),                                           (2041, 2070), (2071, 2100)) # CMIPS5
+#periods = (                            (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # CMIPS6
+periods  = ((1971, 2020), (1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # full+5+6
 periods_str = ['%d-%d' % (p[0], p[1]) for p in periods]
 season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
 season_map2 = {'ANN': 'jan-des', 'MAM': 'mars-mai', 'JJA': 'juni-aug', 'SON': 'sep-nov', 'DJF': 'des-feb'}
@@ -403,7 +403,7 @@ if __name__ == '__main__':
     selected = '_selected' if args.selected else ''
     period = int(args.time_period)
     experiment = args.experiment
-    if args.plot != 'kde' and period in (0, 1, 2):
+    if args.plot != 'kde' and period in (0, 1, 2, 3):
         experiment = 'historical'
     #elif experiment == 'historical':
     #   period = 1

@@ -5,7 +5,9 @@ outdir=../../seNorge2018_cmor
 mkdir -p $outdir
 
 for i in $(seq $1 $2); do
-    cdo remapbil,griddes.txt $input/seNorge2018_$i.nc seNorge2018_${i}_remap.nc
+    if [ ! -f seNorge2018_${i}_remap.nc ]; do
+        cdo remapbil,griddes.txt $input/seNorge2018_$i.nc seNorge2018_${i}_remap.nc
+    fi
 
     cdo selvar,rr seNorge2018_${i}_remap.nc pr1_$i.nc
     ncrename -O -v rr,pr pr1_$i.nc pr2_$i.nc
@@ -18,5 +20,6 @@ for i in $(seq $1 $2); do
     ncap2 -O -s "tas=tas+273.15" tas2_$i.nc tas1_$i.nc
     ncatted -O -a units,tas,o,c,"K" -a long_name,tas,o,c,"Near-Surface Air Temperature" tas1_$i.nc  $outdir/tas_seNorge2018_${i}_remap.nc
     rm tas1_$i.nc tas2_$i.nc
+    # comment this to keep non-processed remapped files:
     rm seNorge2018_${i}_remap.nc
 done
