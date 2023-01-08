@@ -10,7 +10,7 @@ for op in mean max min; do
 echo "generate log files for $op"
 for t in CLMcom CLMcom-BTU CLMcom-ETH CNRM DMI GERICS ICTP IPSL KNMI MOHC MPI-CSC RMIB-UGent SMHI UHOH; do
     echo start $t
-    python make_stats.py --dry -s $op --interval $iv -t $t > logs/$t-$iv$op.log
+    python make_stats.py --dry -s $op --selected --interval $iv -t $t > logs/$t-$iv$op-selected.log
 done
 
 echo "run $op stats the background"
@@ -19,7 +19,7 @@ for t in CLMcom CLMcom-BTU CLMcom-ETH CNRM DMI GERICS ICTP IPSL KNMI MOHC MPI-CS
 	    if [ $(jobs -p|wc -l) -lt $nthreads ]; then
             ((n++))
             echo "start $n: $t-$iv$op"
-            python make_stats.py -s $op --interval $iv -t $t >& /dev/null &
+            python make_stats.py -s $op --selected --interval $iv -t $t >& /dev/null &
             break
         fi
         sleep 0.5s

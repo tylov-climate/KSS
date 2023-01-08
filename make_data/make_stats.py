@@ -61,62 +61,84 @@ def find_period(d1, d2, periods):
     return 0, -1
 
 
-def make_ensemble_stats(inroot, interval, stat_op, ref_per):
+def create_diff_file(var, infile, reffile, outfile):
+    outdir = os.path.dirname(outfile)
+    os.makedirs(outdir, exist_ok=True)
+    shutil.copyfile(infile, outfile)
+    with nc4.Dataset(reffile) as nc_ref:
+        with nc4.Dataset(outfile, 'r+') as nc:
+            if var == 'tas':
+                data = nc.variables[var][:] - nc_ref.variables[var][:]
+            if var == 'pr':
+                data = 100 * (nc.variables[var][:] - nc_ref.variables[var][:]) / nc_ref.variables[var][:]
+            nc[var][:] = data
+
+
+def make_ensemble_stats(inroot, interval, stat_op, ens_op, periods):
+    # loop files
     op = interval + stat_op
-    yper = '' if interval == 'yseas' else interval
+    #if False:
     for dd in glob.glob(os.path.join(inroot, '%s/*' % op)):
         base = os.path.basename(dd)
-        outdir = os.path.join(inroot, 'ens%s%s' % (yper, stat_op))
-        if not os.path.isdir(outdir):
+        outdir = os.path.join(inroot, 'ens%s_%s' % (ens_op, op))
+        if not args.dry and not os.path.isdir(outdir):
             os.makedirs(outdir)
-        outfile = os.path.join(outdir, base + '_ens%s.nc' % stat_op) # stat_op not needed: could use just '_ens.nc'
+        outfile = os.path.join(outdir, base + '_ens%s.nc' % ens_op)
         print('input:', dd)
         print('output:', outfile)
 
         if base.startswith('pr_'):
-            cmd1 = cdo + ' -L -O ens%s%s %s/*.nc %s' % (yper, stat_op, dd, 'tmp1.nc')
+            cmd1 = cdo + ' -L -O ens%s %s/*.nc %s' % (ens_op, dd, 'tmp1.nc')
             cmd2 = cdo + ' -L -O setattribute,pr@units="mm year-1" %s %s' % ('tmp1.nc', 'tmp2.nc')
             cmd3 = 'ncap2 -O -s "pr=31557600*pr" %s %s' % ('tmp2.nc', outfile)
-            ret = os.system(cmd1)
-            ret = os.system(cmd2)
-            ret = os.system(cmd3)
+            if not args.dry:
+                ret = os.system(cmd1)
+                ret = os.system(cmd2)
+                ret = os.system(cmd3)
         elif base.startswith('tas_'):
-            cmd1 = cdo + ' -L -O ens%s%s %s/*.nc %s' % (yper, stat_op, dd, 'tmp1.nc')
+            cmd1 = cdo + ' -L -O ens%s %s/*.nc %s' % (ens_op, dd, 'tmp1.nc')
             cmd2 = cdo + ' -L -O setattribute,tas@units="Celsius" %s %s' % ('tmp1.nc', 'tmp2.nc')
             cmd3 = 'ncap2 -O -s "tas=tas-273.15f" %s %s' % ('tmp2.nc', outfile)
-            ret = os.system(cmd1)
-            ret = os.system(cmd2)
-            ret = os.system(cmd3)
+            if not args.dry:
+                ret = os.system(cmd1)
+                ret = os.system(cmd2)
+                ret = os.system(cmd3)
         else:
             print('skipping %s folder...' % dd)
-    try:
-        os.remove('tmp1.nc')
-        os.remove('tmp2.nc')
-    except:
-        pass
-    
-    if True:
-        for ff in glob.glob(os.path.join(inroot, 'ens%s%s/*.nc' % (yper, stat_op))):
-            base = os.path.basename(ff)
-            part = base.split('_')
-            if part[3] == 'histo':
-                continue
-            var = part[0]
-            # fhist ref?
-            fhist = os.path.join(os.path.dirname(ff), '_'.join((part[0], part[1], '%d-%d_histo' % (ref_per[0], ref_per[1]), part[4])))
-            outdir = os.path.join(inroot, 'ens%sdiff' % yper)
-            outfile = os.path.join(outdir, base.replace('.nc', '_diff.nc'))
-            print('computing diff:', outfile)
 
-            os.makedirs(outdir, exist_ok=True)
-            shutil.copyfile(ff, outfile)
-            with nc4.Dataset(outfile, 'r+') as nc:
-                nc_hist = nc4.Dataset(fhist)
-                if var == 'tas':
-                    data = nc.variables[var][:] - nc_hist.variables[var][:]
-                if var == 'pr':
-                    data = 100 * (nc.variables[var][:] - nc_hist.variables[var][:]) / nc_hist.variables[var][:]
-                nc[var][:] = data
+    if os.path.isfile('tmp1.nc'):
+        os.remove('tmp1.nc')
+    if os.path.isfile('tmp2.nc'):
+        os.remove('tmp2.nc')
+
+    #
+    # Compute differences for all periods against all ref-periods
+    #
+    m = {
+        '1971-2020':0, '1971-2000':1, '1985-2014':2, '1991-2020':3, '2041-2070':4, '2071-2100':5,
+        'histo':0, 'rcp26':1, 'rcp45':2, 'rcp85':3,
+    }
+    outdir = os.path.join(inroot, 'ensdiff_%s%s' % (interval, ens_op))
+    for ref in glob.glob(os.path.join(inroot, 'ens%s_%s/*.nc' % (ens_op, op))):
+        rbase = os.path.basename(ref)
+        rpart = rbase.split('_')
+        rvar = rpart[0]
+        for f in glob.glob(os.path.join(inroot, 'ens%s_%s/*.nc' % (ens_op, op))):
+            base = os.path.basename(f)
+            part = base.split('_')
+            var = part[0]
+            if f == ref or var != rvar or m[rpart[2]] > m[part[2]] or m[rpart[3]] > m[part[3]]:
+                continue
+            if part[2] == rpart[2]:
+                outfile = os.path.join(outdir, base.replace('.nc', '_diff_%s.nc' % rpart[3]))
+            else:
+                outfile = os.path.join(outdir, base.replace('.nc', '_diff_%s.nc' % rpart[2]))
+            
+            print('diff:', outfile)
+            if not args.dry:
+                create_diff_file(var, f, ref, outfile)
+
+
 
 # hist => 2005
 # rcp4.5 start 2006
@@ -142,6 +164,15 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
             #print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
             if not (var_id == 'pr' or var_id == 'tas'):
                 continue
+
+            if args.selected:
+                try:
+                    rcms = selected_models[model_id]
+                    rcm_id = '%s_%s' % (source_id, ensemble_id)
+                    if not rcm_id in rcms:
+                        continue
+                except:
+                    continue
 
             # Re-categorize 'rcp45' for years <= 2020 to 'historical',
             # and skip rcp26 and rcp85 for years <= 2020
@@ -245,12 +276,16 @@ def parse_args():
         help='Create ensemble statistic files over all or selected models'
     )
     parser.add_argument(
-        '-p', '--periods', default='0,1,2,3,4,5',
-        help='Periods comma-separated num: (' + ','.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
+        '-l', '--selected', action='store_true',
+        help='Chose only a selected group of models'
     )
     parser.add_argument(
-        '-r', '--ref-period', default=1,
-        help='Ref. hist period: 1=default (' + ','.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
+        '-p', '--periods', default='0,1,2,3,4,5',
+        help='Periods comma-separated num: (' + ', '.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
+    )
+    parser.add_argument(
+        '-r', '--ref-period', default=2,
+        help='Ref. period (use with -e): 2=default (' + ', '.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
     )
     parser.add_argument(
         '-s', '--stat', required=True,
@@ -269,7 +304,7 @@ def parse_args():
         help='Output file directory'
     )
     parser.add_argument(
-        '-t', '--institute', required=True,
+        '-t', '--institute', default=None,
         help='Input institute name: default "*"'
     )
     return parser.parse_args()
@@ -282,6 +317,13 @@ if __name__ == '__main__':
     #periods = ((1985, 2014), (1991, 2020),              (2041, 2070), (2071, 2100)) # CMIP6
     periods = ((1971, 2020), (1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # full+5+6
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'std': 4}
+    selected_models = {
+        'CNRM-CERFACS-CNRM-CM5': ['ALADIN63_r1i1p1'],
+        'ICHEC-EC-EARTH': ['CCLM4-8-17_r12i1p1', 'HIRHAM5_r3i1p1', 'RCA4_r12i1p1'],
+        'MOHC-HadGEM2-ES': ['RCA4_r1i1p1', 'REMO2015_r1i1p1'],
+        'MPI-M-MPI-ESM-LR': ['CCLM4-8-17_r1i1p1', 'REMO2009_r2i1p1'],
+        'NCC-NorESM1-M': ['RCA4_r1i1p1', 'REMO2015_r1i1p1']
+    }
     cdo = 'cdo'
 
     uname = platform.uname()
@@ -298,7 +340,8 @@ if __name__ == '__main__':
     if '-tos' in uname.node: # NIRD or similar
         inbase = '/tos-project4/NS9076K/data/cordex-norway'
         inroot = inbase + '/EUR-11'
-        outroot = inbase + '/stats_v3'
+        outroot = inbase + '/stats_v3.selected'
+        #outroot = inbase + '/stats_v3'
         #inroot = inbase + '/EUR-11.OLD'
         #outroot = inbase + '/stats_v3.OLD'
         cdo = '/opt/cdo'
@@ -315,7 +358,10 @@ if __name__ == '__main__':
         outroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
 
     if args.ensemble:
-        print('Reference period:', periods[int(args.ref_period)])
-        make_ensemble_stats(outroot, args.interval, stat_op, periods[int(args.ref_period)])
+        #print('Reference period:', periods[int(args.ref_period)])
+        make_ensemble_stats(outroot, 'ymon', stat_op, stat_op, periods)
     else:
-    	make_stats(inroot, outroot, args.interval, stat_op, periods, institute)
+        if institute is None:
+            print("missing argument: -t institute")
+            exit()
+        make_stats(inroot, outroot, args.interval, stat_op, periods, institute)

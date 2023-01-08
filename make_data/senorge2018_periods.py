@@ -32,7 +32,7 @@ def senorge2018_periods(inroot, outroot):
 
 # MAIN
 
-periods = ((1971, 2000), (1985, 2014), (1991, 2020), (1971, 2020))
+periods = ((1971, 2020), (1971, 2000), (1985, 2014), (1991, 2020))
 intervals = ('yseas', 'ymon')
 operators = ('mean', 'max', 'min') #, 'std')
 variables = ('pr', 'tas')
@@ -47,6 +47,6 @@ if __name__ == '__main__':
         outroot = '/mnt/c/Dev/DATA/cordex-norway/seNorge2018'
     else:
         inroot = '../../seNorge2018_cmor'
-        outroot = '../../stats_v3'
+        outroot = '../../stats_v3.senorge'
 
     senorge2018_periods(inroot, outroot)

@@ -40,11 +40,11 @@ overlaps_models = {
 }
 '''
 selected_models = {
-    'CNRM-CM5': ['ALADIN63_r1i1p1'],
-    'EC-EARTH': ['CCLM_r12i1p1', 'HIRHAM5_r3i1p1', 'RCA_r12i1p1'],
-    'HadGEM2-ES': ['RCA_r1i1p1', 'REMO_r1i1p1'],
-    'MPI-ESM-LR': ['CCLM_r1i1p1', 'REMO_r2i1p1'],
-    'NorESM1-M': ['RCA_r1i1p1', 'REMO_r1i1p1']
+    'CNRM-CERFACS-CNRM-CM5': ['ALADIN63_r1i1p1'],
+    'ICHEC-EC-EARTH': ['CCLM4-8-17_r12i1p1', 'HIRHAM5_r3i1p1', 'RCA4_r12i1p1'],
+    'MOHC-HadGEM2-ES': ['RCA4_r1i1p1', 'REMO2015_r1i1p1'],
+    'MPI-M-MPI-ESM-LR': ['CCLM4-8-17_r1i1p1', 'REMO2009_r2i1p1'],
+    'NCC-NorESM1-M': ['RCA4_r1i1p1', 'REMO2015_r1i1p1']
 }
 
 
