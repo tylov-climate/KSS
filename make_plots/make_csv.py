@@ -213,8 +213,8 @@ def create_dataframe(stats, dims, stat_op, use_rcp_selected=False):
                     for x1 in range(len(dims['exps'])):
                         name = dims['exps'][x1]
                         if x1 != x:
-                            m['TAS diff-%s' % name].append(stats[s][x1][o][d[3]['tas']][n] - tas_mean)
-                            m['PR diff-%s' % name].append(100 * (stats[s][x1][o][d[3]['pr']][n] - pr_mean) / pr_mean)
+                            m['TAS diff-%s' % name].append(tas_mean - stats[s][x1][o][d[3]['tas']][n])
+                            m['PR diff-%s' % name].append(100 * (pr_mean - stats[s][x1][o][d[3]['pr']][n]) / pr_mean)
                         else:
                             m['TAS diff-%s' % name].append(0.0)
                             m['PR diff-%s' % name].append(0.0)
