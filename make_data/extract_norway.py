@@ -67,32 +67,40 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
     for mpath in glob.glob(os.path.join(inroot, '*')):
         model = os.path.basename(mpath)
         for root, dirs, files in os.walk(mpath):
+            if not ('/CNRM-ESM2-1/' in root or '/HCLIMcom-METNo/' in root):
+                continue
             for f in files:
                 if f.endswith('.nc'):
                     infile = os.path.join(root, f)
                     subpath = root.replace(inroot, '')
                     outdir = os.path.join(outroot, subpath)
                     outfile = os.path.join(outdir, f)
-                    if not os.path.isfile(outfile):
-                        print('Path:', subpath, file=sys.stderr)
-                        print('     ', f, file=sys.stderr)
-                        # Crop bounding box of Norway with accurate fixed pixels (integer args are interpreted as pixels, not lon,lat values!)
-                        #ret = os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
-                        ret = os.system('cdo selindexbox,%d,%d,%d,%d %s %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
-                        print("ret is", ret)
-                        if ret != 0:
-                            print('cdo remapbil,griddes.txt %s %s' % (infile, 'tmp.nc'))
-                            # Probably not "standard" rotated_pole 412x424 grid, so try with combined bi-linear remapping and crop instead:
-                            ret = os.system('cdo remapbil,griddes.txt %s %s' % (infile, 'tmp.nc'))
+                    if os.path.isfile(outfile) and os.path.getmtime(outfile) > os.path.getmtime(infile):
+                        continue
 
-                        if ret == 0:
-                            if not os.path.isdir(outdir):
-                                os.makedirs(outdir)
-                            shutil.move('tmp.nc', outfile)
-                        else:
-                            print('Result:', ret, file=sys.stderr)
+                    if not ('/day/' in root and (root.endswith('/tas') or root.endswith('/pr'))):
+                        continue
+
+                    print('Path:', subpath, file=sys.stderr)
+                    print('     ', f, file=sys.stderr)
+                    
+                    # Crop bounding box of Norway with accurate fixed pixels (integer args are interpreted as pixels, not lon,lat values!)
+                    #ret = os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
+
+                    #ret = os.system('cdo selindexbox,%d,%d,%d,%d %s %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
+                    #print("ret is", ret)
+                    #if ret != 0:
+                    if True:
+                        # Probably not "standard" rotated_pole 412x424 grid, so try with combined bi-linear remapping and crop instead:
+                        print('cdo remapbil,griddes.txt %s %s' % (infile, 'tmp.nc'))
+                        ret = os.system('cdo remapbil,griddes.txt %s %s' % (infile, 'tmp.nc'))
+
+                    if ret == 0:
+                        if not os.path.isdir(outdir):
+                            os.makedirs(outdir)
+                        shutil.move('tmp.nc', outfile)
                     else:
-                        pass
+                        print('Result:', ret, file=sys.stderr)
 
 def sample_test():
     proj = Projection()
@@ -116,8 +124,13 @@ if __name__ == '__main__':
     #    print('give model group name')
     #    exit()
     #group = sys.argv[1]
-    inroot="/lustre/storeC-ext/users/kin2100/MET/cordex/output/EUR-11"
-    outroot="/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11"
+
+    if True: # CMIP6
+        inroot="/lustre/storeC-ext/users/kin2100/MET/cordex/CMIP6/RCM/EUR-11"
+        outroot="/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11-CMIP6"
+    else:    # CMIP5
+        inroot="/lustre/storeC-ext/users/kin2100/MET/cordex/output/EUR-11"
+        outroot="/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11-CMIP5"
 
     print("inroot:", inroot)
     print("outroot:", outroot)
