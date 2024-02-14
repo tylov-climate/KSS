@@ -37,6 +37,5 @@ END
     do
         echo GEO ABS "$v" $t
         python plot_kss.py -p geo -v "$v" -t $t --abs $save
-    done    
+    done
 done
-

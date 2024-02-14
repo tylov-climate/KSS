@@ -136,13 +136,17 @@ def grid_scatterplot_diff(df):
     df = df[df.Årstid == args.season]
     df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment != 'historical']
+    #if period >= 0:
+    #    df = df[df.Eksperiment == experiment]
+    #else:
+    #    df = df[(df.Eksperiment == experiment) | (df.Eksperiment == 'historical')]
 
     g = sns.FacetGrid(df, col='Eksperiment',
                           row='Periode',
                           hue='Modell', palette='bright', height=9.6, aspect=0.6,
                           legend_out=False, sharex=False, sharey=True) # despine=False 
     g.fig.suptitle('Nedbør- og temperatur-endring, fastlands-norge, %s' % season_map2[args.season], fontsize=16, y=0.98)
-    g.map(scatterplot_func, 'TAS endring', 'PR endring', 'Modell Id') # , markers=markers) #, style='Modell Id')
+    g.map(scatterplot_func, 'TAS diff-%s' % exp_names[args.diff], 'PR diff-%s' % exp_names[args.diff], 'Modell Id') # , markers=markers) #, style='Modell Id')
     g.fig.subplots_adjust(top=0.91, left=0.04, bottom=0.07, wspace=0.1, hspace=1.5)
     g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
     g.add_legend()
@@ -153,6 +157,11 @@ def grid_scatterplot_diff(df):
 def grid_scatterplot_abs(df):
     df = df[df.Årstid == args.season]
     df = df[df.Periode == periods_str[period]]
+    #if experiment != 'all':
+    #    if period >= 0:
+    #        df = df[df.Eksperiment == experiment]
+    #    else:
+    #        df = df[(df.Eksperiment == experiment) | (df.Eksperiment == 'historical')]
     sns.set(style='ticks')
     g = sns.FacetGrid(df, col='Eksperiment',
                           row='Periode',
@@ -339,7 +348,7 @@ def get_args():
     )
     parser.add_argument(
         '-e', '--experiment', default='historical',
-        help='Experiment (historical=default, rcp26, rcp45, rcp85)'
+        help='Experiment (historical=default, rcp26, rcp45, rcp85, all)'
     )
     parser.add_argument(
         '-s', '--season', default='ANN',
@@ -359,7 +368,7 @@ def get_args():
     )
     parser.add_argument(
         '-d', '--diff', default=None,
-        help='Difference to experiment (hist-0, hist-1, hist-2, rcp26-3, rcp26-4, rcp45-3, rcp45-4, rcp85-3, rcp85-4)'
+        help='Difference to experiment (histo-0, histo-1, histo-2, rcp26-3, rcp26-4, rcp45-3, rcp45-4, rcp85-3, rcp85-4)'
     )
     parser.add_argument(
         '--selected', action='store_true',
