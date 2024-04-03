@@ -45,9 +45,13 @@ import shutil
                 :cmor_version = "2.9.1" ;
                 :NCO = "4.6.9" ;
 
-MPI-CSC/MPI-M-MPI-ESM-LR/rcp26/r1i1p1/REMO2009/v1/day/pr/v20160525
-         pr_EUR-11_MPI-M-MPI-ESM-LR_rcp26_r1i1p1_MPI-CSC-REMO2009_v1_day_20310101-20351231.nc
+MPI-CSC/MPI-M-MPI-ESM-LR/rcp26/r1i1p1/REMO2009/v1/day/pr/v20160525/
+pr_EUR-11_MPI-M-MPI-ESM-LR_rcp26_r1i1p1_MPI-CSC-REMO2009_v1_day_20310101-20351231.nc
 
+cmip6:
+  /projects/NS9001K/tylo/DATA/cordex-norway/EUR-11-CMIP6/  # root
+  KNMI/NorESM2-MM/ssp370/r1i1p1f1/RACMO23E/v1-r1/day/tas/  # subpath
+  tas_Norway-EUR-12_NorESM2-MM_ssp370_r1i1p1f1_KNMI_RACMO23E_v1-r1_day_20150101-20151231.nc
 '''
 
 def find_period(d1, d2, periods):
@@ -74,13 +78,13 @@ def create_diff_file(var, infile, reffile, outfile):
             nc[var][:] = data
 
 
-def make_ensemble_stats(inroot, interval, stat_op, ens_op, periods):
+def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
     # loop files
     op = interval + stat_op
     #if False:
     for dd in glob.glob(os.path.join(inroot, '%s/*' % op)):
         base = os.path.basename(dd)
-        outdir = os.path.join(inroot, 'ens%s_%s' % (ens_op, op))
+        outdir = os.path.join(outroot, 'ens%s_%s' % (ens_op, op))
         if not args.dry and not os.path.isdir(outdir):
             os.makedirs(outdir)
         outfile = os.path.join(outdir, base + '_ens%s.nc' % ens_op)
@@ -116,24 +120,25 @@ def make_ensemble_stats(inroot, interval, stat_op, ens_op, periods):
     #
     m = {
         '1971-2020':0, '1971-2000':1, '1985-2014':2, '1991-2020':3, '2041-2070':4, '2071-2100':5,
-        'histo':0, 'rcp26':1, 'rcp45':2, 'rcp85':3,
+        'histo':0, 'rcp26':1, 'rcp45':2, 'rcp85':3, 'ssp370':4,
     }
-    outdir = os.path.join(inroot, 'ensdiff_%s%s' % (interval, ens_op))
-    for ref in glob.glob(os.path.join(inroot, 'ens%s_%s/*.nc' % (ens_op, op))):
+    outdir = os.path.join(outroot, 'ensdiff_%s%s' % (interval, ens_op))
+    for ref in glob.glob(os.path.join(outroot, 'ens%s_%s/*.nc' % (ens_op, op))):
         rbase = os.path.basename(ref)
         rpart = rbase.split('_')
         rvar = rpart[0]
-        for f in glob.glob(os.path.join(inroot, 'ens%s_%s/*.nc' % (ens_op, op))):
+        for f in glob.glob(os.path.join(outroot, 'ens%s_%s/*.nc' % (ens_op, op))):
             base = os.path.basename(f)
             part = base.split('_')
             var = part[0]
-            if f == ref or var != rvar or m[rpart[2]] > m[part[2]] or m[rpart[3]] > m[part[3]]:
+            period = part[2]
+            if f == ref or var != rvar or m[rpart[2]] > m[period]:
                 continue
             if part[2] == rpart[2]:
                 outfile = os.path.join(outdir, base.replace('.nc', '_diff_%s.nc' % rpart[3]))
             else:
                 outfile = os.path.join(outdir, base.replace('.nc', '_diff_%s.nc' % rpart[2]))
-            
+
             print('diff:', outfile)
             if not args.dry:
                 create_diff_file(var, f, ref, outfile)
@@ -142,6 +147,7 @@ def make_ensemble_stats(inroot, interval, stat_op, ens_op, periods):
 
 # hist => 2005
 # rcp4.5 start 2006
+# ssp370 start 2015
 
 def make_stats(inroot, outroot, interval, stat_op, periods, institute):
     print(inroot)
@@ -158,12 +164,16 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
 
         tmpdir = os.path.join(outroot, 'temp_%s_%s_%s' % (institute, op, period_id))
 
-        for dd in glob.glob(os.path.join(inroot, institute + '/*/*/*/*/*/day/*/*')):
+        for dd in glob.glob(os.path.join(inroot, institute + '/*/*/*/*/*/day/*')):
             subpath = dd.replace(inroot, '')
-            institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id = subpath.split('/')
+            institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id = subpath.split('/')
             #print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
-            if not (var_id == 'pr' or var_id == 'tas'):
-                continue
+            if args.windhouse:
+                if var_id != 'sfcWind':
+                    continue
+            else:
+                if var_id != 'pr' and var_id != 'tas':
+                    continue
 
             if args.selected:
                 try:
@@ -178,15 +188,15 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
             # and skip rcp26 and rcp85 for years <= 2020
             expid = experiment_id
             if per[1] <= 2020:
-                if experiment_id == 'rcp45':
+                if experiment_id == 'ssp370':
                     expid = 'historical'
                 elif experiment_id != 'historical':
                     continue
 
-            experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, expid, ensemble_id, source_id, rcm_version_id, op, create_ver_id)
+            experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, expid, ensemble_id, source_id, rcm_version_id, op, 'v00000000')
             outfile = os.path.join(outroot_op, '%s_%s_%s_%s' % (var_id, op, period_id, expid[:5]), experiment + '_%s.nc' % period_id)
             input_files = []
-            
+
             if not args.dry and os.path.isfile(outfile):
                 print('    ...exists')
                 continue
@@ -215,7 +225,7 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
             if len(input_files) == 0:
                 continue
             try:
-                filemap[outfile] += input_files 
+                filemap[outfile] += input_files
             except:
                 filemap[outfile] = input_files
 
@@ -223,7 +233,8 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
             odir = os.path.dirname(outfile)
             oname = os.path.basename(outfile)
             print("CDO", op, period_id)
-            print('  =>', oname)
+            #print('  =>', oname)
+            print('  =>', outfile)
             # Temp outfile in root output, to be moved
             tmpfile = os.path.join(outroot, oname)
             infiles_str = ''
@@ -241,7 +252,7 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
                 os.system('ncatted -a experiment_id,global,m,c,historical -O %s %s.nc' % (tmpfile, tmpfile))
                 os.remove(tmpfile)
                 os.rename(tmpfile + '.nc', tmpfile)
-            
+
             '''
             # change to mm/year
             if var_id == 'pr' and ret == 0:
@@ -267,6 +278,14 @@ def parse_args():
     print('make_stats.py - make statistics data for KSS Klima 2100')
     print('')
 
+    parser.add_argument(
+        '-w', '--windhouse', action='store_true',
+        help='Wind house data'
+    )
+    parser.add_argument(
+        '--cmip', default='6',
+        help='Wind house data'
+    )
     parser.add_argument(
         '--dry',  action='store_true',
         help='Only print the operations'
@@ -327,9 +346,9 @@ if __name__ == '__main__':
     cdo = 'cdo'
 
     uname = platform.uname()
-    #print(uname)
-    
-    args = parse_args()    
+    print(uname)
+
+    args = parse_args()
     stat_op = args.stat
     n = stat_ops[stat_op]
     institute = args.institute
@@ -337,29 +356,35 @@ if __name__ == '__main__':
     if uname.system != 'Linux':
         print('Exit. Must be run under Linux because it needs CDO and NCO')
         exit()
-    if '-tos' in uname.node: # NIRD or similar
-        inbase = '/tos-project4/NS9076K/data/cordex-norway'
-        inroot = inbase + '/EUR-11'
-        outroot = inbase + '/stats_v3.selected'
-        #outroot = inbase + '/stats_v3'
-        #inroot = inbase + '/EUR-11.OLD'
-        #outroot = inbase + '/stats_v3.OLD'
-        cdo = '/opt/cdo'
-    elif 'norceresearch.no' in uname.node:
+    if '-nird' in uname.node: # NIRD
+        if args.windhouse:
+            inbase = '/projects/NS9001K/tylo/DATA/cordex'
+            inroot = inbase + '/EUR-11-CMIP6'
+            outroot = inbase + '/stats_windhouse'
+        elif args.cmip == '6':
+            inbase = '/projects/NS9001K/tylo/DATA/cordex-norway'
+            inroot = inbase + '/EUR-11-CMIP6'
+            outroot = inbase + '/stats_cmip6'
+        elif args.cmip == '5':
+            inbase = '/projects/NS9001K/tylo/DATA/cordex-norway'
+            inroot = inbase + '/EUR-11-CMIP5'
+            outroot = inbase + '/stats_cmip5'
+    elif 'norceresearch' in uname.node: # NORCE HPC
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
-        inroot = inbase + '/EUR-11'
-        outroot = inbase + '/stats_v3'
+        inroot = inbase + '/EUR-11-CMIP6'
+        outroot = inbase + '/stats_cmip6'
     elif 'ppi-ext' in uname.node: # met.no
         inbase = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway'
-        inroot = inbase + '/EUR-11'
-        outroot = inbase + '/stats_v3'
-    else: # home
-        inroot = 'C:/Dev/DATA/EUR-11'
-        outroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
+        inroot = inbase + '/EUR-11-CMIP6'
+        outroot = inbase + '/stats_cmip6'
+    else: # work PC
+        inroot = 'C:/Dev/DATA/EUR-11-CMIP6'
+        outroot = 'C:/Dev/DATA/cordex-norway/stats_cmip6'
 
     if args.ensemble:
         #print('Reference period:', periods[int(args.ref_period)])
-        make_ensemble_stats(outroot, 'ymon', stat_op, stat_op, periods)
+        statsroot = '/scratch/tylo/kss_stats_cmip6'
+        make_ensemble_stats(outroot, statsroot, 'ymon', stat_op, stat_op, periods)
     else:
         if institute is None:
             print("missing argument: -t institute")

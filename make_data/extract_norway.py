@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 #
-# Coded by Tyge Lovset, Sep/Oct 2020
+# Coded by Tyge Lovset, Feb/March 2024
 
 import os
 import sys
 import glob
 import cartopy
 import shutil
+import platform
 
 # EUR-11 Cordex data.
 
@@ -64,11 +65,15 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
 
     if inroot[-1] != '/':
         inroot += '/'
-    for mpath in glob.glob(os.path.join(inroot, '*')):
+    for mpath in glob.glob(os.path.join(inroot, args.model)):
         model = os.path.basename(mpath)
         for root, dirs, files in os.walk(mpath):
-            if not ('/CNRM-ESM2-1/' in root or '/HCLIMcom-METNo/' in root):
-                continue
+            if args.cmip == '5':
+                if not ('/CNRM-ESM2-1/' in root or '/HCLIMcom-METNo/' in root):
+                    continue
+            if args.cmip == '6':
+                if not ('/day/' in root and (root.endswith('/tas') or root.endswith('/pr'))):
+                    continue
             for f in files:
                 if f.endswith('.nc'):
                     infile = os.path.join(root, f)
@@ -78,12 +83,9 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
                     if os.path.isfile(outfile) and os.path.getmtime(outfile) > os.path.getmtime(infile):
                         continue
 
-                    if not ('/day/' in root and (root.endswith('/tas') or root.endswith('/pr'))):
-                        continue
-
                     print('Path:', subpath, file=sys.stderr)
                     print('     ', f, file=sys.stderr)
-                    
+
                     # Crop bounding box of Norway with accurate fixed pixels (integer args are interpreted as pixels, not lon,lat values!)
                     #ret = os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1], infile, 'tmp.nc'))
 
@@ -92,46 +94,60 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
                     #if ret != 0:
                     if True:
                         # Probably not "standard" rotated_pole 412x424 grid, so try with combined bi-linear remapping and crop instead:
-                        print('cdo remapbil,griddes.txt %s %s' % (infile, 'tmp.nc'))
-                        ret = os.system('cdo remapbil,griddes.txt %s %s' % (infile, 'tmp.nc'))
+                        print(f'cdo -z zip_2 remapbil,griddes.txt {infile} tmp-{f}')
+                        ret = os.system(f'cdo -z zip_2 remapbil,griddes.txt {infile} tmp-{f}')
 
                     if ret == 0:
                         if not os.path.isdir(outdir):
                             os.makedirs(outdir)
-                        shutil.move('tmp.nc', outfile)
+                        shutil.move(f'tmp-{f}', outfile)
                     else:
                         print('Result:', ret, file=sys.stderr)
 
-def sample_test():
-    proj = Projection()
-    p = proj.lonlat_to_rotpole(nor_lonlat[0])
-    q = proj.lonlat_to_rotpoley(nor_lonlat[1])
-    print('lon',(p[0],q[0]), 'lat',(p[1],q[1]))
-    samples = os.path.join('..', 'sample_data')
-    base = '_EUR-11_ICHEC-EC-EARTH_rcp85_r12i1p1_SMHI-RCA4_v1_day_20060101-20101231.nc'
-    os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1],
-        os.path.join(samples, 'eur11', 'tas' + base),
-        os.path.join(samples, 'nor11', 'tas' + base)))
-    os.system('ncks -d rlon,%d,%d -d rlat,%d,%d %s -O %s' % (p[0],q[0], p[1],q[1],
-        os.path.join(samples, 'eur11', 'pr' + base),
-        os.path.join(samples, 'nor11', 'pr' + base)))
+
+def parse_args():
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    print('extract_norway.py - extract norway from cordex data')
+    print('')
+
+    parser.add_argument(
+        '--cmip',  default='5',
+        help='CMIP (5=default, 6)'
+    )
+    parser.add_argument(
+        '-m', '--model', default='*',
+        help='Select model (default "*")'
+    )
+    parser.add_argument(
+        '-v', '--variable', default='*',
+        help='Select variable (default "*")'
+    )
+    return parser.parse_args()
 
 # MAIN
 
 if __name__ == '__main__':
-    #sample_test()
-    #if len(sys.argv) == 1:
-    #    print('give model group name')
-    #    exit()
-    #group = sys.argv[1]
+    args = parse_args()
+    uname = platform.uname()
 
-    if True: # CMIP6
-        inroot="/lustre/storeC-ext/users/kin2100/MET/cordex/CMIP6/RCM/EUR-11"
-        outroot="/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11-CMIP6"
-    else:    # CMIP5
-        inroot="/lustre/storeC-ext/users/kin2100/MET/cordex/output/EUR-11"
-        outroot="/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11-CMIP5"
+    if 'ppi-ext' in uname.node: # ppi-ext-login.met.no
+        if args.cmip == '5':
+            inroot = "/lustre/storeC-ext/users/kin2100/MET/cordex/output/EUR-11"
+            outroot = "/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11-CMIP5"
+        elif args.cmip == '6':
+            inroot = "/lustre/storeC-ext/users/kin2100/MET/cordex/CMIP6/RCM/EUR-11"
+            outroot = "/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11-CMIP6"
+    elif '-nird' in uname.node: # login.nird.sigma2.no
+        if args.cmip == '5':
+            print("No input data available on NIRD")
+            exit()
+        elif args.cmip == '6':
+            inroot = '/projects/NS9001K/tylo/DATA/cordex/NOR-12' # KNMI
+            outroot = '/projects/NS9001K/tylo/DATA/cordex-norway/EUR-11-CMIP6'
 
+    print(uname.node, args.cmip)
     print("inroot:", inroot)
     print("outroot:", outroot)
     crop_cordex_eur11_to_norway(inroot, outroot)

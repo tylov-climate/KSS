@@ -48,14 +48,14 @@ def catplot1(df):
         ax.set_xticklabels(ax.get_xticks(), fontsize=10)
     g.add_legend()
     if variable.startswith('TAS'):
-        tit = "Temperaturendring [°C]" if variable != "TAS celsius" else "Temperatur [°C]"
+        tit = 'Temperaturendring [°C]' if variable != 'TAS celsius' else 'Temperatur [°C]'
     else:
-        tit = "Nedbørsendring [%]" if variable != "PR mm.år" else "Nedbør [mm/år]"
+        tit = 'Nedbørsendring [%]' if variable != 'PR mm.år' else 'Nedbør [mm/år]'
     g.fig.suptitle('Euro-CORDEX 11: %s, %s, %s, %s' % (tit, season_map2[args.season], periods_str[period], experiment), fontsize=16, y=0.98)
     plt.tight_layout()
     if args.save:
-        save_plot(g, "catplot1", variable)
-       
+        save_plot(g, 'catplot1', variable)
+
 
 def catplot2(df):
     df = df[df.Årstid == args.season]
@@ -70,13 +70,13 @@ def catplot2(df):
         ax.set_xticklabels(ax.get_xticks(), fontsize=10)
     g.add_legend()
     if variable.startswith('TAS'):
-        tit = "Temperaturendring [°C]" if variable != "TAS celsius" else "Temperatur [°C]"
+        tit = 'Temperaturendring [°C]' if variable != 'TAS celsius' else 'Temperatur [°C]'
     else:
-        tit = "Nedbørsendring [%]" if variable != "PR mm.år" else "Nedbør [mm/år]"
+        tit = 'Nedbørsendring [%]' if variable != 'PR mm.år' else 'Nedbør [mm/år]'
     g.fig.suptitle('Euro-CORDEX 11: %s, %s, %s, %s' % (tit, season_map2[args.season], periods_str[period], experiment), fontsize=16, y=0.98)
     plt.tight_layout()
     if args.save:
-        save_plot(g, "catplot2", variable)
+        save_plot(g, 'catplot2', variable)
 
 
 def barplot(df):
@@ -100,7 +100,7 @@ def barplot(df):
     ax.set_xticklabels(ax.get_xticks(), fontsize=10)
     plt.tight_layout()
     if args.save:
-        save_plot(ax.get_figure(), "barplot", variable)
+        save_plot(ax.get_figure(), 'barplot', variable)
 
 
 def kdeplot(df):
@@ -126,7 +126,7 @@ def kdeplot(df):
     #wm.full_screen_toggle()
     #plt.tight_layout()
     if args.save:
-        save_plot(ax.get_figure(), "kdeplot", variable)
+        save_plot(ax.get_figure(), 'kdeplot', variable)
 
 
 def grid_scatterplot_diff(df):
@@ -144,7 +144,7 @@ def grid_scatterplot_diff(df):
     g = sns.FacetGrid(df, col='Eksperiment',
                           row='Periode',
                           hue='Modell', palette='bright', height=9.6, aspect=0.6,
-                          legend_out=False, sharex=False, sharey=True) # despine=False 
+                          legend_out=False, sharex=False, sharey=True) # despine=False
     g.fig.suptitle('Nedbør- og temperatur-endring, fastlands-norge, %s' % season_map2[args.season], fontsize=16, y=0.98)
     g.map(scatterplot_func, 'TAS diff-%s' % exp_names[args.diff], 'PR diff-%s' % exp_names[args.diff], 'Modell Id') # , markers=markers) #, style='Modell Id')
     g.fig.subplots_adjust(top=0.91, left=0.04, bottom=0.07, wspace=0.1, hspace=1.5)
@@ -243,19 +243,19 @@ def geoplot():
 
     gs = fig.add_gridspec(1, 2)
     gs01 = gs[1].subgridspec(2, 2)
-    points = geoplot_sub(rlat, rlon, data[0], fig, gs[0], "Gjennomsnitt for året")
+    points = geoplot_sub(rlat, rlon, data[0], fig, gs[0], 'Gjennomsnitt for året')
     plt.colorbar(points)
-    geoplot_sub(rlat, rlon, data[1], fig, gs01[0], "Årstid: mars-mai")
-    geoplot_sub(rlat, rlon, data[2], fig, gs01[1], "Årstid: juni-aug")
-    geoplot_sub(rlat, rlon, data[3], fig, gs01[2], "Årstid: sep-nov")
-    geoplot_sub(rlat, rlon, data[4], fig, gs01[3], "Årstid: des-feb")
+    geoplot_sub(rlat, rlon, data[1], fig, gs01[0], 'Årstid: mars-mai')
+    geoplot_sub(rlat, rlon, data[2], fig, gs01[1], 'Årstid: juni-aug')
+    geoplot_sub(rlat, rlon, data[3], fig, gs01[2], 'Årstid: sep-nov')
+    geoplot_sub(rlat, rlon, data[4], fig, gs01[3], 'Årstid: des-feb')
     if variable.startswith('TAS'):
-        tit = "Temperaturendring [°C]" if variable != "TAS celsius" else "Temperatur [°C]"
+        tit = 'Temperaturendring [°C]' if variable != 'TAS celsius' else 'Temperatur [°C]'
     else:
-        tit = "Nedbørsendring [%]" if variable == "PR mm.år" else "Nedbør [mm/år]"
-    fig.suptitle('Euro-CORDEX 11: %s (%s) i perioden %s, scenario %s' % (tit, variable, periods_str[period], experiment), fontsize=16, y=0.98)
+        tit = 'Nedbørsendring [%]' if variable == 'PR mm.år' else 'Nedbør [mm/år]'
+    fig.suptitle(f'Euro-CORDEX 11: {tit} ({variable}) i perioden %s, scenario %s' % (tit, variable, periods_str[period], experiment), fontsize=16, y=0.98)
     plt.subplots_adjust(top=0.91, left=0.04, bottom=0.07, wspace=0.08, hspace=0.08)
-    
+
     #plt.tight_layout()
     if args.save:
         save_plot(fig, 'geoplot', variable)
@@ -266,9 +266,9 @@ def geoplot_load(varname, diff):
 
     fpath = 'yseas%s_%s_%s_ens%s' % (args.stat, periods_str[period], experiment[:5], args.stat)
     if diff:
-        file = args.indir + '/ensdiff/%s_%s_diff.nc' % (varname, fpath)
+        file = inroot + '/ensdiff/%s_%s_diff.nc' % (varname, fpath)
     else:
-        file = args.indir + '/ens%s/%s_%s.nc' % (args.stat, varname, fpath)
+        file = inroot + '/ens%s/%s_%s.nc' % (args.stat, varname, fpath)
     print(file)
     nc_data = nc4.Dataset(file)
     return nc_data
@@ -294,9 +294,9 @@ def geoplot_sub(rlat, rlon, var, fig, pos, title, type=1, res=30):
 def save_plot(g, plotname, varname=''):
     global period, experiment
     varname = varname.replace(' ', '-')
-    os.makedirs(args.outdir, exist_ok=True)
+    os.makedirs(outroot, exist_ok=True)
     selected = '_selected' if args.selected else ''
-    g.savefig('%s/eur11_%s%s_%s_period%d_%s_%s.png' % (args.outdir, plotname, selected, varname, period, args.season, experiment))
+    g.savefig('%s/eur11_%s%s_%s_period%d_%s_%s.png' % (outroot, plotname, selected, varname, period, args.season, experiment))
 
 
 #def test_groupby():
@@ -309,35 +309,31 @@ def save_plot(g, plotname, varname=''):
 #    df2 = None
 #    df['TAS endring'] = df1['TAS celsius'] - df1['A'].map(df2.set_index('A')['B'])
 
-
-uname = platform.uname()[1]
-if '-tos' in uname: # NIRD or similar
-    inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3'
-elif 'norceresearch.no' in uname:
-    inroot = os.path.expanduser('~') + '/proj/KSS/cordex-norway/stats_v3'
-elif 'ppi-ext' in uname: # met.no
-    inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
-else: # home
-    inroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
-outroot = '../plots'
-
 exp_names = {
-    'histo-0': 'historical_1971-2000', 
-    'histo-1': 'historical_1985-2014',
-    'histo-2': 'historical_1991-2020',
-    'rcp26-3': 'rcp26_2041-2070', 'rcp26-4': 'rcp26_2071-2100',
-    'rcp45-3': 'rcp45_2041-2070', 'rcp45-4': 'rcp45_2071-2100',
-    'rcp85-3': 'rcp85_2041-2070', 'rcp85-4': 'rcp85_2071-2100',
+    'histo-0': 'historical_1971-2020',
+    'histo-1': 'historical_1971-2000',
+    'histo-2': 'historical_1985-2014',
+    'histo-3': 'historical_1991-2020',
+    'rcp26-4': 'rcp26_2041-2070',
+    'rcp45-4': 'rcp45_2041-2070',
+    'rcp85-4': 'rcp85_2041-2070',
+    'ssp370-4': 'ssp370_2041-2070',
+    'rcp26-5': 'rcp26_2071-2100',
+    'rcp45-5': 'rcp45_2071-2100',
+    'rcp85-5': 'rcp85_2071-2100',
+    'ssp370-5': 'ssp370_2071-2100',
 }
 
 def get_args():
     import argparse
-    global args
-
     parser = argparse.ArgumentParser()
     print('kss_plot - make plots for KSS Klima 2100')
     print('')
 
+    parser.add_argument(
+        '--cmip', default='5',
+        help='CMIP (5=default, 6)'
+    )
     parser.add_argument(
         '-p', '--plot', required=True, #default='bar',
         help='Kind of plot (bar, scatter, kde, cat1, cat2, geo)'
@@ -348,7 +344,7 @@ def get_args():
     )
     parser.add_argument(
         '-e', '--experiment', default='historical',
-        help='Experiment (historical=default, rcp26, rcp45, rcp85, all)'
+        help='Experiment (historical=default, rcp26, rcp45, rcp85, ssp370, all)'
     )
     parser.add_argument(
         '-s', '--season', default='ANN',
@@ -368,7 +364,9 @@ def get_args():
     )
     parser.add_argument(
         '-d', '--diff', default=None,
-        help='Difference to experiment (histo-0, histo-1, histo-2, rcp26-3, rcp26-4, rcp45-3, rcp45-4, rcp85-3, rcp85-4)'
+        help='Difference to experiment (histo-0, histo-1, histo-2, histo-3,'
+             'rcp26-4, rcp45-4, rcp85-4, ssp370-4,'
+             'rcp26-5, rcp45-5, rcp85-5, ssp370-5)'
     )
     parser.add_argument(
         '--selected', action='store_true',
@@ -384,14 +382,14 @@ def get_args():
         help='Input csv file'
     )
     parser.add_argument(
-        '-i', '--indir', default=inroot,
+        '-i', '--indir', default=None,
         help='Input file directory'
     )
     parser.add_argument(
-        '-o', '--outdir', default=outroot,
+        '-o', '--outdir', default=None,
         help='Output file directory'
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
 
 ### MAIN ###
@@ -405,10 +403,26 @@ periods_str = ['%d-%d' % (p[0], p[1]) for p in periods]
 season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
 season_map2 = {'ANN': 'jan-des', 'MAM': 'mars-mai', 'JJA': 'juni-aug', 'SON': 'sep-nov', 'DJF': 'des-feb'}
 norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
-args = None
+
 
 if __name__ == '__main__':
-    get_args()
+    args = get_args()
+
+    uname = platform.uname()[1]
+    if '-nird' in uname: # NIRD or similar
+        inroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip%s' % args.cmip
+    elif 'norceresearch.no' in uname:
+        inroot = os.path.expanduser('~') + '/proj/KSS/cordex-norway/stats_v3'
+    elif 'ppi-ext' in uname: # met.no
+        inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
+    else: # home
+        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
+    outroot = '../plots'
+    if args.indir != None:
+        inroot = args.indir
+    if args.outdir != None:
+        outroot = args.outdir
+
     selected = '_selected' if args.selected else ''
     period = int(args.time_period)
     experiment = args.experiment
@@ -417,7 +431,8 @@ if __name__ == '__main__':
     #elif experiment == 'historical':
     #   period = 1
 
-    csvfile = args.csvfile if args.csvfile else 'yseas%s_kss%s.csv' % (args.stat, selected)
+    #csvfile = args.csvfile if args.csvfile else 'yseas%s_kss%s.csv' % (args.stat, selected)
+    csvfile = args.csvfile if args.csvfile else 'yseas%s_cmip%s%s.csv' % (args.stat, args.cmip, selected)
     print(csvfile)
 
     # Read dataset
@@ -430,7 +445,7 @@ if __name__ == '__main__':
         if args.var == 'TAS' : variable = 'TAS celsius'
         if args.var == 'PR': variable = 'PR mm.år'
 
-    # Add full model column: join 
+    # Add full model column: join
     models = df[df.columns[4:7]].apply(
         lambda x: '_'.join(x.dropna().astype(str)),
         axis=1
@@ -457,6 +472,6 @@ if __name__ == '__main__':
             grid_scatterplot_diff(df)
         else:
             grid_scatterplot_abs(df)
-    
+
     if not args.save:
         plt.show()

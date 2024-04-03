@@ -141,7 +141,7 @@ def average_data(inroot, output):
     return stats, dims
 
 
-def create_dataframe(stats, dims, stat_op, use_rcp_selected=False):
+def create_dataframe(stats, dims, stat_op, use_selected=False):
     d = dims['inv']
     '''
     m = {'Season': [], 'Experiment': [], 'Period': [],
@@ -150,18 +150,42 @@ def create_dataframe(stats, dims, stat_op, use_rcp_selected=False):
          'TAS diff': [], 'PR diff': [],
     }
     '''
-    m = {'Årstid': [], 'Eksperiment': [], 'Periode': [],
-         'Institutt': [], 'Modell': [], 'Modell Id': [], 'Ensemble': [], 'RCM Ver': [],
-         'TAS celsius': [], 'PR mm.år': [],
-        'TAS diff-historical_1971-2000': [], 'TAS diff-historical_1985-2014': [], 'TAS diff-historical_1991-2020': [],
-        'TAS diff-rcp26_2041-2070': [], 'TAS diff-rcp26_2071-2100': [],
-        'TAS diff-rcp45_2041-2070': [], 'TAS diff-rcp45_2071-2100': [],
-        'TAS diff-rcp85_2041-2070': [], 'TAS diff-rcp85_2071-2100': [],
-        'PR diff-historical_1971-2000': [], 'PR diff-historical_1985-2014': [], 'PR diff-historical_1991-2020': [],
-        'PR diff-rcp26_2041-2070': [], 'PR diff-rcp26_2071-2100': [],
-        'PR diff-rcp45_2041-2070': [], 'PR diff-rcp45_2071-2100': [],
-        'PR diff-rcp85_2041-2070': [], 'PR diff-rcp85_2071-2100': [],
+    m = {
+        'Årstid': [], 'Eksperiment': [], 'Periode': [],
+        'Institutt': [], 'Modell': [], 'Modell Id': [],
+        'Ensemble': [], 'RCM Ver': [],
+        'TAS celsius': [], 'PR mm.år': [],
+        'TAS diff-historical_1971-2000': [],
+        'TAS diff-historical_1971-2020': [],
+        'TAS diff-historical_1985-2014': [],
+        'TAS diff-historical_1991-2020': [],
+        'PR diff-historical_1971-2000': [],
+        'PR diff-historical_1971-2020': [],
+        'PR diff-historical_1985-2014': [],
+        'PR diff-historical_1991-2020': [],
     }
+    if args.cmip == '5':
+        m.update(dict({
+            'TAS diff-rcp26_2041-2070': [],
+            'TAS diff-rcp45_2041-2070': [],
+            'TAS diff-rcp85_2041-2070': [],
+            'TAS diff-rcp26_2071-2100': [],
+            'TAS diff-rcp45_2071-2100': [],
+            'TAS diff-rcp85_2071-2100': [],
+            'PR diff-rcp26_2041-2070': [],
+            'PR diff-rcp45_2041-2070': [],
+            'PR diff-rcp85_2041-2070': [],
+            'PR diff-rcp26_2071-2100': [],
+            'PR diff-rcp45_2071-2100': [],
+            'PR diff-rcp85_2071-2100': [],
+        }))
+    elif args.cmip == '6':
+        m.update(dict({
+            'TAS diff-ssp370_2041-2070': [],
+            'TAS diff-ssp370_2071-2100': [],
+            'PR diff-ssp370_2041-2070': [],
+            'PR diff-ssp370_2071-2100': [],
+        }))
 
     pr_fac = 365.25 * 24 * 60 * 60
 
@@ -173,7 +197,7 @@ def create_dataframe(stats, dims, stat_op, use_rcp_selected=False):
                 model = model_name.split('_')
                 source = model[1].split('-')
 
-                if use_rcp_selected:
+                if use_selected:
                     match = False
                     for key, val in selected_models.items():
                         if match: break
@@ -241,8 +265,12 @@ def parse_args():
     print('')
 
     parser.add_argument(
-        '-s', '--stat', required=True,
-        help='Statistics (mean, min, max)'
+        '--cmip', default='5',
+        help='CMIP (5=default, 6)'
+    )
+    parser.add_argument(
+        '-s', '--stat', default='mean',
+        help='Statistics (mean=default, min, max)'
     )
     parser.add_argument(
         '--interval', default='yseas',
@@ -279,8 +307,8 @@ if __name__ == '__main__':
 
     if args.indir:
         inroot = args.indir
-    elif '-tos' in uname: # NIRD or similar
-        inroot = '/tos-project4/NS9076K/data/cordex-norway/stats_v3/%s' % sub_path
+    elif '-nird' in uname: # NIRD or similar
+        inroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip%s/%s' % (args.cmip, sub_path)
     elif 'norceresearch.no' in uname:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
         inroot = inbase + '/stats_v3/%s' % sub_path
@@ -289,7 +317,7 @@ if __name__ == '__main__':
     else: # home
         inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % sub_path
 
-    file = '%s_kss' % stat_op
+    file = '%s_cmip%s' % (stat_op, args.cmip)
     if args.selected:
         file += '_selected'
 
@@ -297,7 +325,7 @@ if __name__ == '__main__':
     print('Output:', file + '.csv')
 
     if False: # os.path.exists(file + '.pkl'):
-        print("Load", file + '.pkl')
+        print('Load', file + '.pkl')
         df = pd.read_pickle(file + '.pkl')
         df = pd.read_csv(file + '.csv', sep=';')
     else:
@@ -312,4 +340,4 @@ if __name__ == '__main__':
     print(df)
     #df.to_pickle(file + '.pkl')
     df.to_csv(file + '.csv', sep=';')
-    print("File written:", file + '.csv')
+    print('File written:', file + '.csv')
