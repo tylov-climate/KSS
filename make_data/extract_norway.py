@@ -65,21 +65,25 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
 
     if inroot[-1] != '/':
         inroot += '/'
-    for mpath in glob.glob(os.path.join(inroot, args.model)):
+
+    pattern = os.path.join(inroot, args.model);
+    print(pattern)
+    for mpath in glob.glob(pattern):
         model = os.path.basename(mpath)
         for root, dirs, files in os.walk(mpath):
             if args.cmip == '5':
                 if not ('/CNRM-ESM2-1/' in root or '/HCLIMcom-METNo/' in root):
                     continue
             if args.cmip == '6':
-                if not ('/day/' in root and (root.endswith('/tas') or root.endswith('/pr'))):
-                    continue
+                if not '/day/' in root:
+                   continue
             for f in files:
-                if f.endswith('.nc'):
+                if f.endswith('.nc') and (f.startswith('tas_') or f.startswith('pr_')):
                     infile = os.path.join(root, f)
                     subpath = root.replace(inroot, '')
                     outdir = os.path.join(outroot, subpath)
                     outfile = os.path.join(outdir, f)
+                    print(f)
                     if os.path.isfile(outfile) and os.path.getmtime(outfile) > os.path.getmtime(infile):
                         continue
 
@@ -137,6 +141,7 @@ if __name__ == '__main__':
             inroot = "/lustre/storeC-ext/users/kin2100/MET/cordex/output/EUR-11"
             outroot = "/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11-CMIP5"
         elif args.cmip == '6':
+            #inroot = "/lustre/storeC-ext/users/kin2100/MET/cordex/CMIP6/RCM/NOR-12" #KNMI
             inroot = "/lustre/storeC-ext/users/kin2100/MET/cordex/CMIP6/RCM/EUR-11"
             outroot = "/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway/EUR-11-CMIP6"
     elif '-nird' in uname.node: # login.nird.sigma2.no

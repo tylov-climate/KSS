@@ -363,14 +363,14 @@ if __name__ == '__main__':
             outroot = inbase + '/stats_windhouse'
         elif args.cmip == '6':
             inbase = '/projects/NS9001K/tylo/DATA/cordex-norway'
-            inroot = inbase + '/EUR-11-CMIP6'
+            inroot = inbase + '/NOR-11-CMIP6'
             outroot = inbase + '/stats_cmip6'
         elif args.cmip == '5':
             inbase = '/projects/NS9001K/tylo/DATA/cordex-norway'
             inroot = inbase + '/EUR-11-CMIP5'
             outroot = inbase + '/stats_cmip5'
     elif 'norceresearch' in uname.node: # NORCE HPC
-        inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
+        inbase = os.path.expanduser('~') + '/proj/kss/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP6'
         outroot = inbase + '/stats_cmip6'
     elif 'ppi-ext' in uname.node: # met.no
