@@ -77,6 +77,7 @@ def crop_cordex_eur11_to_norway(inroot, outroot):
             if args.cmip == '6':
                 if not '/day/' in root:
                    continue
+            print(root)
             for f in files:
                 if f.endswith('.nc') and (f.startswith('tas_') or f.startswith('pr_')):
                     infile = os.path.join(root, f)
@@ -149,8 +150,10 @@ if __name__ == '__main__':
             print("No input data available on NIRD")
             exit()
         elif args.cmip == '6':
-            inroot = '/projects/NS9001K/tylo/DATA/cordex/NOR-12' # KNMI
-            outroot = '/projects/NS9001K/tylo/DATA/cordex-norway/EUR-11-CMIP6'
+            #inroot = '/projects/NS9001K/tylo/DATA/cordex/NOR-12' # KNMI
+            #outroot = '/projects/NS9001K/tylo/DATA/cordex-norway/EUR-11-CMIP6'
+            inroot = '/scratch/tylo/EUR-11-CMIP6' # CLCom-BTU
+            outroot = '/datalake/NS9001K/tylo/NOR-11-CMIP6'
 
     print(uname.node, args.cmip)
     print("inroot:", inroot)

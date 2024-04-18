@@ -410,14 +410,19 @@ if __name__ == '__main__':
 
     uname = platform.uname()[1]
     if '-nird' in uname: # NIRD or similar
-        inroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip%s' % args.cmip
+        #inroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip%s' % args.cmip
+        #outroot = '/datalake/NS9001K/tylo/kin2100/plots_cmip%s' % args.cmip
+        inroot = '/nird/home/tylo/proj/KSS/stats_cmip%s' % args.cmip
+        outroot = '/nird/home/tylo/proj/KSS/plots_cmip%s' % args.cmip
     elif 'norceresearch.no' in uname:
         inroot = os.path.expanduser('~') + '/proj/KSS/cordex-norway/stats_v3'
+        outroot = '../plots%s' % args.cmip
     elif 'ppi-ext' in uname: # met.no
         inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
+        outroot = '../plots%s' % args.cmip
     else: # home
         inroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
-    outroot = '../plots'
+        outroot = '../plots%s' % args.cmip
     if args.indir != None:
         inroot = args.indir
     if args.outdir != None:

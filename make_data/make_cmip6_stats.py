@@ -161,12 +161,22 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
     for per in [periods[int(i)] for i in args.periods.split(',')]:
         filemap = {}
         period_id = '%d-%d' % (per[0], per[1])
-
         tmpdir = os.path.join(outroot, 'temp_%s_%s_%s' % (institute, op, period_id))
+        has_create_ver = args.institute in ('CLMcom-BTU', 'CLMcom-KIT')
 
-        for dd in glob.glob(os.path.join(inroot, institute + '/*/*/*/*/*/day/*')):
+        if has_create_ver:
+            subdirs = '/*/*/*/*/*/day/*/*'
+        else:
+            subdirs = '/*/*/*/*/*/day/*'
+
+        for dd in glob.glob(os.path.join(inroot, institute + subdirs)):
+            print(dd)
             subpath = dd.replace(inroot, '')
-            institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id = subpath.split('/')
+            if has_create_ver:
+                institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id = subpath.split('/')
+            else:
+                institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id = subpath.split('/')
+                create_ver_id = 'v00000000'
             #print(institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id)
             if args.windhouse:
                 if var_id != 'sfcWind':
@@ -193,12 +203,12 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
                 elif experiment_id != 'historical':
                     continue
 
-            experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, expid, ensemble_id, source_id, rcm_version_id, op, 'v00000000')
+            experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, expid, ensemble_id, source_id, rcm_version_id, op, create_ver_id)
             outfile = os.path.join(outroot_op, '%s_%s_%s_%s' % (var_id, op, period_id, expid[:5]), experiment + '_%s.nc' % period_id)
             input_files = []
 
             if not args.dry and os.path.isfile(outfile):
-                print('    ...exists')
+                print('  ', outfile, '...exists')
                 continue
 
             for file in glob.glob(os.path.join(dd, '*.nc')):
@@ -239,7 +249,7 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
             tmpfile = os.path.join(outroot, oname)
             infiles_str = ''
             for f in sorted(input_files):
-                print('    ', os.path.basename(f))
+                print('    f:', os.path.basename(f))
                 infiles_str += ' ' + f
             # Concatenate all files
             cmd = cdo + " -L %s -cat '%s' %s" % (op, infiles_str, tmpfile)
@@ -283,10 +293,6 @@ def parse_args():
         help='Wind house data'
     )
     parser.add_argument(
-        '--cmip', default='6',
-        help='Wind house data'
-    )
-    parser.add_argument(
         '--dry',  action='store_true',
         help='Only print the operations'
     )
@@ -299,7 +305,7 @@ def parse_args():
         help='Chose only a selected group of models'
     )
     parser.add_argument(
-        '-p', '--periods', default='0,1,2,3,4,5',
+        '-p', '--periods', default='1,2,3,4,5',
         help='Periods comma-separated num: (' + ', '.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
     )
     parser.add_argument(
@@ -361,14 +367,12 @@ if __name__ == '__main__':
             inbase = '/projects/NS9001K/tylo/DATA/cordex'
             inroot = inbase + '/EUR-11-CMIP6'
             outroot = inbase + '/stats_windhouse'
-        elif args.cmip == '6':
-            inbase = '/projects/NS9001K/tylo/DATA/cordex-norway'
-            inroot = inbase + '/NOR-11-CMIP6'
-            outroot = inbase + '/stats_cmip6'
-        elif args.cmip == '5':
-            inbase = '/projects/NS9001K/tylo/DATA/cordex-norway'
-            inroot = inbase + '/EUR-11-CMIP5'
-            outroot = inbase + '/stats_cmip5'
+        else:
+            #inroot = '/projects/NS9001K/tylo/DATA/cordex-norway/EUR-11-CMIP6'
+            #outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip6'
+            inroot='/datalake/NS9001K/dataset/tylo/NOR-11-CMIP6'
+            #outroot = '/nird/home/tylo/proj/kss/stats_cmip6_run01'
+            outroot = '/datalake/NS9001K/dataset/tylo/stats_cmip6'
     elif 'norceresearch' in uname.node: # NORCE HPC
         inbase = os.path.expanduser('~') + '/proj/kss/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP6'
@@ -383,10 +387,11 @@ if __name__ == '__main__':
 
     if args.ensemble:
         #print('Reference period:', periods[int(args.ref_period)])
-        statsroot = '/scratch/tylo/kss_stats_cmip6'
-        make_ensemble_stats(outroot, statsroot, 'ymon', stat_op, stat_op, periods)
+        make_ensemble_stats(outroot, outroot, args.interval, stat_op, stat_op, periods)
     else:
         if institute is None:
             print("missing argument: -t institute")
             exit()
+        print(inroot)
+        print(outroot)
         make_stats(inroot, outroot, args.interval, stat_op, periods, institute)

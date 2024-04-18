@@ -1,10 +1,10 @@
 save=--save
 
-s
 for v in "TAS diff" "PR diff" ; do
     for s in ANN MAM JJA SON DJF ; do
         for t in 1 2 ; do
             echo DIFF "$v" $t $s
+            python plot_kss.py -p scatter -v "$v" -t $t -s $s $save
             echo python plot_kss.py -p scatter -v "$v" -t $t -s $s $save
             echo python plot_kss.py -p bar -v "$v" -t $t -s $s $save
             echo python plot_kss.py -p cat1 -v "$v" -t $t -s $s $save

@@ -344,23 +344,23 @@ if __name__ == '__main__':
     if '-nird' in uname.node: # NIRD or similar
         inbase = '/projects/NS9001K/tylo/DATA/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP5'
-        outroot = inbase + '/stats_cmip5' # + ('' if args.selected else '.all')
-        cdo = 'cdo'
+        #outroot = '/nird/home/tylo/proj/KSS/stats_cmip5' + ('_selected' if args.selected else '')
+        outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip5' + ('_selected' if args.selected else '')
     elif 'norceresearch.no' in uname.node:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP5'
-        outroot = inbase + '/stats_cmip5' # + ('' if args.selected else '.all')
+        outroot = inbase + '/stats_cmip5' + ('_selected' if args.selected else '')
     elif 'ppi-ext' in uname.node: # met.no
         inbase = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway'
         inroot = inbase + '/EUR-11'
-        outroot = inbase + '/stats_cmip5' # + ('' if args.selected else '.all')
+        outroot = inbase + '/stats_cmip5' + ('_selected' if args.selected else '')
     else: # home
         inroot = 'C:/Dev/DATA/EUR-11-CMIP5'
-        outroot = 'C:/Dev/DATA/cordex-norway/stats_cmip5'
+        outroot = 'C:/Dev/DATA/cordex-norway/stats_cmip5' + ('_selected' if args.selected else '')
 
     if args.ensemble:
         #print('Reference period:', periods[int(args.ref_period)])
-        statsroot = '/scratch/tylo/kss_stats_cmip5'
+        statsroot = outroot
         make_ensemble_stats(outroot, statsroot, 'ymon', stat_op, stat_op, periods)
     else:
         if institute is None:

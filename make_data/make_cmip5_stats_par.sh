@@ -8,13 +8,13 @@ if [ 1 == 1 ]; then
     for iv in yseas ymon; do
         for op in mean max min; do
 
-            echo "generate log files for $iv$op"
-            for t in CLMcom CLMcom-BTU CLMcom-ETH CNRM DMI GERICS ICTP IPSL KNMI MOHC MPI-CSC RMIB-UGent SMHI UHOH; do
-                echo start $t
-                python make_cmip5_stats.py --dry -s $op --selected --interval $iv -t $t > logs/$t-$iv$op-selected.log
-            done
+            #echo "generate log files for $iv$op"
+            #for t in CLMcom CLMcom-BTU CLMcom-ETH CNRM DMI GERICS ICTP IPSL KNMI MOHC MPI-CSC RMIB-UGent SMHI UHOH; do
+            #    echo start $t
+            #    python make_cmip5_stats.py --dry -s $op --selected --interval $iv -t $t > logs/$t-$iv$op-selected.log
+            #done
 
-            echo "run $iv$op stats the background"
+            echo "run $iv$op stats in the background"
             for t in CLMcom CLMcom-BTU CLMcom-ETH CNRM DMI GERICS ICTP IPSL KNMI MOHC MPI-CSC RMIB-UGent SMHI UHOH; do
                 while :; do
             	    if [ $(jobs -p|wc -l) -lt $nthreads ]; then
@@ -28,9 +28,9 @@ if [ 1 == 1 ]; then
             done
         done
     done
+    exit
 fi
 
-exit
 
 iv=yseas
 op=mean
