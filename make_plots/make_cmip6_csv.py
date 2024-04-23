@@ -15,38 +15,6 @@ import seaborn as sns
 import pandas as pd
 import math
 
-last_study_models = [
-    'ICHEC-EC-EARTH_HIRHAM5_r3i1p1',
-    'ICHEC-EC-EARTH_RCA4_r12i1p1',
-    'ICHEC-EC-EARTH_CCLM4-8-17_r12i1p1',
-    'ICHEC-EC-EARTH_RACMO22E_r1i1p1',
-    'CNRM-CERFACS-CNRM-CM5_RCA4_r1i1p1',
-    'CNRM-CERFACS-CNRM-CM5_CCLM4-8-17_r1i1p1',
-    'IPSL-IPSL-CM5A-MR_RCA4_r1i1p1',
-    'IPSL-IPSL-CM5A-MR_WRF331F_r1i1p1',
-    'MPI-M-MPI-ESM-LR_REMO2009_r1i1p1',
-    'MPI-M-MPI-ESM-LR_RCA4_r1i1p1',
-    'MPI-M-MPI-ESM-LR_CCLM4-8-17_r1i1p1',
-    'MOHC-HadGEM2-ES_RCA4_r1i1p1'
-]
-'''
-overlaps_models = {
-    #'CNRM-CM5': ['ALADIN_r1i1p1', 'ALARO_r1i1p1', 'RACMO_r1i1p1'],
-    'CNRM-CM5': ['ALADIN63_r1i1p1', 'RACMO_r1i1p1'],
-    'EC-EARTH': ['CCLM_r12i1p1', 'HIRHAM5_r3i1p1', 'RACMO_r12i1p1', 'RCA_r12i1p1', 'REMO_r12i1p1'],
-    'HadGEM2-ES': ['HIRHAM5_r1i1p1', 'RACMO_r1i1p1', 'RCA_r1i1p1', 'REMO_r1i1p1'],
-    'MPI-ESM-LR': ['CCLM_r1i1p1', 'RCA_r1i1p1', 'REMO_r1i1p1', 'REMO_r2i1p1'],
-    'NorESM1-M': ['RCA_r1i1p1', 'REMO_r1i1p1']
-}
-'''
-selected_models = {
-    'CNRM-CERFACS-CNRM-CM5': ['ALADIN63_r1i1p1'],
-    'ICHEC-EC-EARTH': ['CCLM4-8-17_r12i1p1', 'HIRHAM5_r3i1p1', 'RCA4_r12i1p1'],
-    'MOHC-HadGEM2-ES': ['RCA4_r1i1p1', 'REMO2015_r1i1p1'],
-    'MPI-M-MPI-ESM-LR': ['CCLM4-8-17_r1i1p1', 'REMO2009_r2i1p1'],
-    'NCC-NorESM1-M': ['RCA4_r1i1p1', 'REMO2015_r1i1p1']
-}
-
 
 def load_mask():
     img = mpimg.imread('norway_mask.png')
@@ -141,51 +109,24 @@ def average_data(inroot, output):
     return stats, dims
 
 
-def create_dataframe(stats, dims, stat_op, use_selected=False):
+def create_dataframe(stats, dims, stat_op):
     d = dims['inv']
-    '''
-    m = {'Season': [], 'Experiment': [], 'Period': [],
-         'Institute': [], 'Model': [], 'Model Id': [], 'Ensemble': [], 'RCM Ver': [],
-         'TAS celsius': [], 'PR mm.year': [],
-         'TAS diff': [], 'PR diff': [],
-    }
-    '''
     m = {
         'Årstid': [], 'Eksperiment': [], 'Periode': [],
         'Institutt': [], 'Modell': [], 'Modell Id': [],
         'Ensemble': [], 'RCM Ver': [],
         'TAS celsius': [], 'PR mm.år': [],
         'TAS diff-historical_1971-2000': [],
-        'TAS diff-historical_1971-2020': [],
         'TAS diff-historical_1985-2014': [],
         'TAS diff-historical_1991-2020': [],
+        'TAS diff-ssp370_2041-2070': [],
+        'TAS diff-ssp370_2071-2100': [],
         'PR diff-historical_1971-2000': [],
-        'PR diff-historical_1971-2020': [],
         'PR diff-historical_1985-2014': [],
         'PR diff-historical_1991-2020': [],
+        'PR diff-ssp370_2041-2070': [],
+        'PR diff-ssp370_2071-2100': [],
     }
-    if args.cmip == '5':
-        m.update(dict({
-            'TAS diff-rcp26_2041-2070': [],
-            'TAS diff-rcp45_2041-2070': [],
-            'TAS diff-rcp85_2041-2070': [],
-            'TAS diff-rcp26_2071-2100': [],
-            'TAS diff-rcp45_2071-2100': [],
-            'TAS diff-rcp85_2071-2100': [],
-            'PR diff-rcp26_2041-2070': [],
-            'PR diff-rcp45_2041-2070': [],
-            'PR diff-rcp85_2041-2070': [],
-            'PR diff-rcp26_2071-2100': [],
-            'PR diff-rcp45_2071-2100': [],
-            'PR diff-rcp85_2071-2100': [],
-        }))
-    elif args.cmip == '6':
-        m.update(dict({
-            'TAS diff-ssp370_2041-2070': [],
-            'TAS diff-ssp370_2071-2100': [],
-            'PR diff-ssp370_2041-2070': [],
-            'PR diff-ssp370_2071-2100': [],
-        }))
 
     pr_fac = 365.25 * 24 * 60 * 60
 
@@ -196,22 +137,6 @@ def create_dataframe(stats, dims, stat_op, use_selected=False):
             for model_name in dims['models']: # institute_id, model_sign, ensemble_id, source_id, rcm_version
                 model = model_name.split('_')
                 source = model[1].split('-')
-
-                if use_selected:
-                    match = False
-                    for key, val in selected_models.items():
-                        if match: break
-                        if model[1].endswith(key):           # 'Model' in csv
-                            for mod in val:
-                                mid, ens = mod.split('_')
-                                if model[3].startswith(mid) and model[2] == ens: # 'Model Id' and 'Ensemble' in csv
-                                    match = True
-                                    #print('MATCH: ', key, ':', mid, ens, ':', model[3], model[2])
-                                    if ens != model[2]:
-                                        print('Wrong ensemble match:', model[1], model[3], model[2], '!=', ens)
-                                    break
-                    if not match:
-                        continue
 
                 s = d[0][season]
                 x = d[1][exp_name]
@@ -244,15 +169,6 @@ def create_dataframe(stats, dims, stat_op, use_selected=False):
                             m['PR diff-%s' % name].append(0.0)
 
     df = pd.DataFrame(m)
-    # Merge models to match last_study_models[] signature.
-    models = df[df.columns[4:7]].apply(
-        lambda x: '_'.join(x.dropna().astype(str)),
-        axis=1
-    )
-    last_study = models == last_study_models[0]
-    for i in range(1, len(last_study_models)):
-        last_study |= models == last_study_models[i]
-    df['Referansemodell'] = last_study
     return df
 
 
@@ -264,10 +180,6 @@ def parse_args():
     print('make_csv - make csv input files for KSS Klima 2100')
     print('')
 
-    parser.add_argument(
-        '--cmip', default='5',
-        help='CMIP (5=default, 6)'
-    )
     parser.add_argument(
         '-s', '--stat', default='mean',
         help='Statistics (mean=default, min, max)'
@@ -288,10 +200,6 @@ def parse_args():
         '-o', '--outdir', default=None,
         help='Output file directory'
     )
-    parser.add_argument(
-        '--selected', action='store_true',
-        help='Use a selection of models only'
-    )
     return parser.parse_args()
 
 
@@ -308,7 +216,7 @@ if __name__ == '__main__':
     if args.indir:
         inroot = args.indir
     elif '-nird' in uname: # NIRD or similar
-        inroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip%s/%s' % (args.cmip, sub_path)
+        inroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip6/%s' % sub_path
     elif 'norceresearch.no' in uname:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
         inroot = inbase + '/stats_v3/%s' % sub_path
@@ -317,9 +225,7 @@ if __name__ == '__main__':
     else: # home
         inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % sub_path
 
-    file = '%s_cmip%s' % (stat_op, args.cmip)
-    if args.selected:
-        file += '_selected'
+    file = '%s_cmip6' % stat_op
 
     print('Inroot:', inroot)
     print('Output:', file + '.csv')
@@ -335,7 +241,7 @@ if __name__ == '__main__':
         print(dims['exps'])
         print(dims['stat_ops'])
         print(dims['variables'])
-        df = create_dataframe(stats, dims, stat_op, args.selected)
+        df = create_dataframe(stats, dims, stat_op)
 
     print(df)
     #df.to_pickle(file + '.pkl')

@@ -115,6 +115,10 @@ def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
     if os.path.isfile('tmp2.nc'):
         os.remove('tmp2.nc')
 
+    create_diff_files(outroot, interval, stat_op, ens_op)
+
+    
+def create_diff_files(outroot, interval, stat_op, ens_op):
     #
     # Compute differences for all periods against all ref-periods
     #
@@ -122,7 +126,9 @@ def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
         '1971-2020':0, '1971-2000':1, '1985-2014':2, '1991-2020':3, '2041-2070':4, '2071-2100':5,
         'histo':0, 'rcp26':1, 'rcp45':2, 'rcp85':3, 'ssp370':4,
     }
+    op = interval + stat_op
     outdir = os.path.join(outroot, 'ensdiff_%s%s' % (interval, ens_op))
+    
     for ref in glob.glob(os.path.join(outroot, 'ens%s_%s/*.nc' % (ens_op, op))):
         rbase = os.path.basename(ref)
         rpart = rbase.split('_')
@@ -142,7 +148,6 @@ def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
             print('diff:', outfile)
             if not args.dry:
                 create_diff_file(var, f, ref, outfile)
-
 
 
 # hist => 2005
@@ -183,15 +188,6 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
                     continue
             else:
                 if var_id != 'pr' and var_id != 'tas':
-                    continue
-
-            if args.selected:
-                try:
-                    rcms = selected_models[model_id]
-                    rcm_id = '%s_%s' % (source_id, ensemble_id)
-                    if not rcm_id in rcms:
-                        continue
-                except:
                     continue
 
             # Re-categorize 'rcp45' for years <= 2020 to 'historical',
@@ -298,11 +294,7 @@ def parse_args():
     )
     parser.add_argument(
         '-e', '--ensemble', action='store_true',
-        help='Create ensemble statistic files over all or selected models'
-    )
-    parser.add_argument(
-        '-l', '--selected', action='store_true',
-        help='Chose only a selected group of models'
+        help='Create ensemble statistic files over all models'
     )
     parser.add_argument(
         '-p', '--periods', default='1,2,3,4,5',
@@ -342,13 +334,6 @@ if __name__ == '__main__':
     #periods = ((1985, 2014), (1991, 2020),              (2041, 2070), (2071, 2100)) # CMIP6
     periods = ((1971, 2020), (1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # full+5+6
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'std': 4}
-    selected_models = {
-        'CNRM-CERFACS-CNRM-CM5': ['ALADIN63_r1i1p1'],
-        'ICHEC-EC-EARTH': ['CCLM4-8-17_r12i1p1', 'HIRHAM5_r3i1p1', 'RCA4_r12i1p1'],
-        'MOHC-HadGEM2-ES': ['RCA4_r1i1p1', 'REMO2015_r1i1p1'],
-        'MPI-M-MPI-ESM-LR': ['CCLM4-8-17_r1i1p1', 'REMO2009_r2i1p1'],
-        'NCC-NorESM1-M': ['RCA4_r1i1p1', 'REMO2015_r1i1p1']
-    }
     cdo = 'cdo'
 
     uname = platform.uname()
@@ -371,7 +356,6 @@ if __name__ == '__main__':
             #inroot = '/projects/NS9001K/tylo/DATA/cordex-norway/EUR-11-CMIP6'
             #outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip6'
             inroot='/datalake/NS9001K/dataset/tylo/NOR-11-CMIP6'
-            #outroot = '/nird/home/tylo/proj/kss/stats_cmip6_run01'
             outroot = '/datalake/NS9001K/dataset/tylo/stats_cmip6'
     elif 'norceresearch' in uname.node: # NORCE HPC
         inbase = os.path.expanduser('~') + '/proj/kss/cordex-norway'
@@ -387,7 +371,7 @@ if __name__ == '__main__':
 
     if args.ensemble:
         #print('Reference period:', periods[int(args.ref_period)])
-        make_ensemble_stats(outroot, outroot, args.interval, stat_op, stat_op, periods)
+        make_ensemble_stats(outroot, outroot, args.interval, stat_op, 'mean', periods)
     else:
         if institute is None:
             print("missing argument: -t institute")

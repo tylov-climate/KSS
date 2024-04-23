@@ -13,14 +13,12 @@
     #done
 
 inst="CLMcom-KIT CLMcom-BTU HCLIMcom-METNo HCLIMcom-SMHI KNMI"
-interval=yseas
-operation=mean
-if [ ! -z "$1" ]; then interval=$1; fi
-if [ ! -z "$2" ]; then operation=$2; fi
+interval="yseas" # "yseas ymon"
+operation="mean max min"
 
-for iv in $interval; do # ymon yseas
-    for op in $operation; do # mean max min
-        if [ ! -z "$3" ]; then
+for iv in $interval; do
+    for op in $operation; do
+        if [ "$1" == "-e" ]; then
             python make_cmip6_stats.py -s $op --ensemble --interval $iv
         else
             echo "run $iv$op stats in the background"

@@ -40,6 +40,7 @@ def catplot1(df):
     df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment == experiment]
     df = df.sort_values('FullModel')
+    print(df)
     sns.set(style='whitegrid')
     g = sns.catplot(data=df, orient='h', x=variable, y='Modell', col='Modell Id', kind='bar', col_wrap=4,
                     sharex=False, aspect=1.6, height=2.4)
@@ -62,6 +63,7 @@ def catplot2(df):
     df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment == experiment]
     df = df.sort_values('FullModel')
+    print(df)
     sns.set(style='whitegrid')
     g = sns.catplot(data=df, orient='h', x=variable, y='Modell Id', col='Modell', kind='bar', col_wrap=4,
                     sharex=False, aspect=0.8, height=4.8)
@@ -84,6 +86,7 @@ def barplot(df):
     df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment == experiment]
     df = df.sort_values('FullModel')
+    print(df)
 
     sns.set(style='whitegrid')
     sns.set(rc={'figure.figsize':(11, 9.6)})
@@ -103,22 +106,57 @@ def barplot(df):
         save_plot(ax.get_figure(), 'barplot', variable)
 
 
-def kdeplot(df):
+def kdeplot1(df):
     # Kernel density estimation
     # https://seaborn.pydata.org/tutorial/distributions.html#kernel-density-estimation
     df = df[df.Årstid == args.season]
-    #if experiment == 'historical':
-    if period >= 0:
+    if experiment != 'all':
         df = df[df.Eksperiment == experiment]
-    else:
-        df = df[(df.Eksperiment == experiment) | (df.Eksperiment == 'historical')]
+    if args.gcm:
+        df = df[df.Modell == args.gcm]
+    if args.rcm:
+        df = df[df['Modell Id'] == args.rcm]
+    #df = df[df.Periode == periods_str[period]]
+    print(df)
     sns.set(rc={'figure.figsize':(30, 25)})
     ax = sns.displot(data=df, x=variable, hue='Periode', kind='kde', fill=True,
                      height=10, aspect=1.5)
 
     sel = 'utvalgte modeller' if args.selected else 'alle modeller'
+    if args.gcm: sel = args.gcm
+    if args.rcm: sel += '-' + args.rcm
     tit =  'Alle perioder, ' + experiment + ', ' + sel + ', ' + season_map2[args.season] + '.'
-    #ax.fig.suptitle('Euro-CORDEX 11: ' + tit, fontsize=16, y=0.98)
+    ax.fig.suptitle('Euro-CORDEX 11: ' + tit, fontsize=16, y=0.98)
+
+    #ax.fig.set_dpi(100)
+    #wm = plt.get_current_fig_manager()
+    #wm.window.state('zoomed')
+    #wm.full_screen_toggle()
+    #plt.tight_layout()
+    if args.save:
+        save_plot(ax.get_figure(), 'kdeplot', variable)
+
+
+def kdeplot2(df):
+    # Kernel density estimation
+    # https://seaborn.pydata.org/tutorial/distributions.html#kernel-density-estimation
+    df = df[df.Årstid == args.season]
+    if experiment != 'all':
+        df = df[df.Eksperiment == experiment]
+    #df = df[df.Periode == periods_str[period]]
+    if args.gcm:
+        df = df[df.Modell == args.gcm]
+    if args.rcm:
+        df = df[df["Modell Id"] == args.rcm]
+    print(df)
+    sns.set(rc={'figure.figsize':(30, 25)})
+    ax = sns.displot(data=df, x=variable, hue='FullModel', kind='kde', fill=True,
+                     height=10, aspect=1.5)
+    sel = 'utvalgte modeller' if args.selected else 'alle modeller'
+    if args.gcm: sel = args.gcm
+    if args.rcm: sel += '-' + args.rcm
+    tit =  'Alle perioder, ' + experiment + ', ' + sel + ', ' + season_map2[args.season] + '.'
+    ax.fig.suptitle('Euro-CORDEX 11: ' + tit, fontsize=16, y=0.98)
 
     #ax.fig.set_dpi(100)
     #wm = plt.get_current_fig_manager()
@@ -136,6 +174,7 @@ def grid_scatterplot_diff(df):
     df = df[df.Årstid == args.season]
     df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment != 'historical']
+    print(df)
     #if period >= 0:
     #    df = df[df.Eksperiment == experiment]
     #else:
@@ -162,6 +201,7 @@ def grid_scatterplot_abs(df):
     #        df = df[df.Eksperiment == experiment]
     #    else:
     #        df = df[(df.Eksperiment == experiment) | (df.Eksperiment == 'historical')]
+    print(df)
     sns.set(style='ticks')
     g = sns.FacetGrid(df, col='Eksperiment',
                           row='Periode',
@@ -331,20 +371,20 @@ def get_args():
     print('')
 
     parser.add_argument(
-        '--cmip', default='5',
+        '--cmip', default='6',
         help='CMIP (5=default, 6)'
     )
     parser.add_argument(
-        '-p', '--plot', required=True, #default='bar',
-        help='Kind of plot (bar, scatter, kde, cat1, cat2, geo)'
+        '-p', '--plot', required=False, default='bar',
+        help='Kind of plot (bar=default, scatter, kde, cat1, cat2, geo)'
     )
     parser.add_argument(
-        '-t', '--time-period', default=1,
-        help='Time period: default=1 (-1:all, ' + ', '.join(['%d:%s' % (i, periods_str[i]) for i in range(len(periods))]) + ')'
+        '-t', '--time-interval', default=None,
+        help='Time interval: (%s)' % ', '.join(['%d:%s' % (i, periods_str[i]) for i in range(len(periods))])
     )
     parser.add_argument(
-        '-e', '--experiment', default='historical',
-        help='Experiment (historical=default, rcp26, rcp45, rcp85, ssp370, all)'
+        '-e', '--experiment', default=None,
+        help='Experiment (historical=default, all, rcp26, rcp45, rcp85, ssp370)'
     )
     parser.add_argument(
         '-s', '--season', default='ANN',
@@ -354,17 +394,21 @@ def get_args():
         '-v', '--var', default='TAS',
         help='Variable (TAS=default, PR)'
     )
-    '''parser.add_argument(
-        '-m', '--model', default=None,
-        help='Model name'
-    )'''
     parser.add_argument(
-        '--stat', default='mean',
+        '-g', '--gcm', default=None,
+        help='GCM name'
+    )
+    parser.add_argument(
+        '-r', '--rcm', default=None,
+        help='RCM name'
+    )
+    parser.add_argument(
+        '-a', '--stat', default='mean',
         help='Statistics (mean=default, min, max)'
     )
     parser.add_argument(
         '-d', '--diff', default=None,
-        help='Difference to experiment (histo-0, histo-1, histo-2, histo-3,'
+        help='Difference to experiment (histo-1, histo-2, histo-3,'
              'rcp26-4, rcp45-4, rcp85-4, ssp370-4,'
              'rcp26-5, rcp45-5, rcp85-5, ssp370-5)'
     )
@@ -395,10 +439,9 @@ def get_args():
 ### MAIN ###
 
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
-#periods = ((1951, 2000),                                           (2031, 2060), (2071, 2100)) # OLD CMIPS 5
-#periods = ((1971, 2000),                                           (2041, 2070), (2071, 2100)) # CMIPS5
-#periods = (                            (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # CMIPS6
-periods  = ((1971, 2020), (1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # full+5+6
+#periods = ((1971, 2000),                             (2041, 2070), (2071, 2100)) # cmip5
+#periods = (              (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # cmip6
+periods  = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # cmip5+cmip6
 periods_str = ['%d-%d' % (p[0], p[1]) for p in periods]
 season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
 season_map2 = {'ANN': 'jan-des', 'MAM': 'mars-mai', 'JJA': 'juni-aug', 'SON': 'sep-nov', 'DJF': 'des-feb'}
@@ -410,34 +453,45 @@ if __name__ == '__main__':
 
     uname = platform.uname()[1]
     if '-nird' in uname: # NIRD or similar
-        #inroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip%s' % args.cmip
-        #outroot = '/datalake/NS9001K/tylo/kin2100/plots_cmip%s' % args.cmip
-        inroot = '/nird/home/tylo/proj/KSS/stats_cmip%s' % args.cmip
-        outroot = '/nird/home/tylo/proj/KSS/plots_cmip%s' % args.cmip
+        inroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip%s' % args.cmip
+        outroot = '/datalake/NS9001K/dataset/tylo/kin2100/plots_cmip%s' % args.cmip
+        #inroot = 'stats_cmip%s' % args.cmip
+        #outroot = 'plots_cmip%s' % args.cmip
     elif 'norceresearch.no' in uname:
         inroot = os.path.expanduser('~') + '/proj/KSS/cordex-norway/stats_v3'
-        outroot = '../plots%s' % args.cmip
+        outroot = '../plots_cmip%s' % args.cmip
     elif 'ppi-ext' in uname: # met.no
         inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
         outroot = '../plots%s' % args.cmip
     else: # home
         inroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
-        outroot = '../plots%s' % args.cmip
+        outroot = '../plots_cmip%s' % args.cmip
     if args.indir != None:
         inroot = args.indir
     if args.outdir != None:
         outroot = args.outdir
 
     selected = '_selected' if args.selected else ''
-    period = int(args.time_period)
+    
+    period = args.time_interval
+    if period:
+        period = int(period)
     experiment = args.experiment
-    if args.plot != 'kde' and period in (0, 1, 2, 3):
-        experiment = 'historical'
-    #elif experiment == 'historical':
-    #   period = 1
+    if not experiment:
+        if period and period > 2:
+            experiment = 'rcp45' if args.cmip == '5' else 'ssp370'
+        else:
+            experiment = 'historical'
+    if not period:
+        if experiment == 'historical':
+            period = 0 if args.cmip == '5' else 1
+        else:
+            period = 3
 
-    #csvfile = args.csvfile if args.csvfile else 'yseas%s_kss%s.csv' % (args.stat, selected)
-    csvfile = args.csvfile if args.csvfile else 'yseas%s_cmip%s%s.csv' % (args.stat, args.cmip, selected)
+    print('period', period)
+
+    #csvfile = args.csvfile if args.csvfile else 'yseas%s_cmip%s%s.csv' % (args.stat, args.cmip, selected)
+    csvfile = args.csvfile if args.csvfile else '%s/yseas%s_cmip%s%s.csv' % (inroot, args.stat, args.cmip, selected)
     print(csvfile)
 
     # Read dataset
@@ -450,25 +504,27 @@ if __name__ == '__main__':
         if args.var == 'TAS' : variable = 'TAS celsius'
         if args.var == 'PR': variable = 'PR mm.år'
 
-    # Add full model column: join
+    # Add full model name column: join col 4 and 7
     models = df[df.columns[4:7]].apply(
         lambda x: '_'.join(x.dropna().astype(str)),
         axis=1
     )
-
     df['FullModel'] = models
-    df = df[df.FullModel != 'MIROC-MIROC5_WRF361H_r1i1p1']
+    if args.cmip == '5':
+        df = df[df.FullModel != 'MIROC-MIROC5_WRF361H_r1i1p1']
 
     if args.plot == 'bar':
         barplot(df)
-    elif args.plot == 'cat1':
+    elif args.plot == 'cat':
         catplot1(df)
     elif args.plot == 'cat2':
         catplot2(df)
     elif args.plot == 'geo':
         geoplot()
     elif args.plot == 'kde':
-        kdeplot(df)
+        kdeplot1(df)
+    elif args.plot == 'kde2':
+        kdeplot2(df)
     elif args.plot == 'scatter':
         #sns.set_style('whitegrid')
         #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})

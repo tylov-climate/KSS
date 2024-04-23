@@ -153,7 +153,7 @@ if __name__ == '__main__':
             #inroot = '/projects/NS9001K/tylo/DATA/cordex/NOR-12' # KNMI
             #outroot = '/projects/NS9001K/tylo/DATA/cordex-norway/EUR-11-CMIP6'
             inroot = '/scratch/tylo/EUR-11-CMIP6' # CLCom-BTU
-            outroot = '/datalake/NS9001K/tylo/NOR-11-CMIP6'
+            outroot = '/datalake/NS9001K/datasets/tylo/kin2100/NOR-11-CMIP6'
 
     print(uname.node, args.cmip)
     print("inroot:", inroot)
