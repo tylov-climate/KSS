@@ -172,7 +172,7 @@ def grid_scatterplot_diff(df):
     sns.set_style('whitegrid')
     sns.set(style='ticks')
     df = df[df.Årstid == args.season]
-    df = df[df.Periode == periods_str[period]]
+    #df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment != 'historical']
     print(df)
     #if period >= 0:
@@ -477,12 +477,12 @@ if __name__ == '__main__':
     if period:
         period = int(period)
     experiment = args.experiment
-    if not experiment:
+    if experiment is None:
         if period and period > 2:
             experiment = 'rcp45' if args.cmip == '5' else 'ssp370'
         else:
             experiment = 'historical'
-    if not period:
+    if period is None:
         if experiment == 'historical':
             period = 0 if args.cmip == '5' else 1
         else:

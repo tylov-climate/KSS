@@ -50,8 +50,8 @@ selected_models = {
 
 def load_mask():
     img = mpimg.imread('norway_mask.png')
-    img = img[:,:,0] > 0.5
-    return img
+    img = img[:, :, 0] > 0.5
+    return np.flip(img, axis=0)
 
 
 # Save load mean of the statistical data over periods and seasons. (avg, variance, ...)
@@ -105,7 +105,6 @@ def average_data(inroot, output):
     d = dims['inv']
     n = 0
     mask_img = load_mask()
-    mask_img = np.flip(mask_img, axis=0)
     for sub_path in sorted(glob.glob(inroot + dirpattern)):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
