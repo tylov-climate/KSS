@@ -1,11 +1,12 @@
 #op=mean --ensemble
-#if [ ! -z $1 ]; then op=$1; fi
+sel="--selected"
+if [ "$1" == "--all" ]; then sel=""; fi
 
 n=0
 nthreads=4
 
 if [ 1 == 1 ]; then
-    for iv in yseas ymon; do
+    for iv in yseas; do # ymon; do
         for op in mean max min; do
 
             #echo "generate log files for $iv$op"
@@ -20,7 +21,7 @@ if [ 1 == 1 ]; then
             	    if [ $(jobs -p|wc -l) -lt $nthreads ]; then
                         ((n++))
                         echo "start $n: $t-$iv$op"
-                        python make_cmip5_stats.py -s $op --selected --interval $iv -t $t >& /dev/null &
+                        python make_cmip5_stats.py -s $op $sel --interval $iv -t $t >& /dev/null &
                         break
                     fi
                     sleep 0.5s

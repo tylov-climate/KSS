@@ -116,7 +116,7 @@ def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
     # Compute differences for all periods against all ref-periods
     #
     m = {
-        '1971-2020':0, '1971-2000':1, '1985-2014':2, '1991-2020':3, '2041-2070':4, '2071-2100':5,
+        '1971-2020':0, '1971-2000':1, '1991-2020':2, '2041-2070':3, '2071-2100':4,
         'histo':0, 'rcp26':1, 'rcp45':2, 'rcp85':3,
     }
     outdir = os.path.join(outroot, 'ensdiff_%s%s' % (interval, ens_op))
@@ -284,7 +284,7 @@ def parse_args():
         help='Chose only a selected group of models'
     )
     parser.add_argument(
-        '-p', '--periods', default='0,1,2,3,4,5',
+        '-p', '--periods', default='1,2,3,4',
         help='Periods comma-separated num: (' + ', '.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
     )
     parser.add_argument(
@@ -319,7 +319,7 @@ if __name__ == '__main__':
     #periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD MIPS5
     #periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIP5
     #periods = ((1985, 2014), (1991, 2020),              (2041, 2070), (2071, 2100)) # CMIP6
-    periods = ((1971, 2020), (1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # full+5+6
+    periods = ((1971, 2020), (1971, 2000), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'std': 4}
     selected_models = {
         'CNRM-CERFACS-CNRM-CM5': ['ALADIN63_r1i1p1'],
@@ -344,19 +344,20 @@ if __name__ == '__main__':
     if '-nird' in uname.node: # NIRD or similar
         inbase = '/projects/NS9001K/tylo/DATA/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP5'
-        #outroot = '/nird/home/tylo/proj/KSS/stats_cmip5' + ('_selected' if args.selected else '')
-        outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip5' + ('_selected' if args.selected else '')
+        #outroot = '/nird/home/tylo/proj/KSS/stats_cmip5' + ('' if args.selected else '_all')
+        #outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip5' + ('' if args.selected else '_all')
+        outroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip5' + ('' if args.selected else '_all')
     elif 'norceresearch.no' in uname.node:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP5'
-        outroot = inbase + '/stats_cmip5' + ('_selected' if args.selected else '')
+        outroot = inbase + '/stats_cmip5' + ('' if args.selected else '_all')
     elif 'ppi-ext' in uname.node: # met.no
         inbase = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway'
         inroot = inbase + '/EUR-11'
-        outroot = inbase + '/stats_cmip5' + ('_selected' if args.selected else '')
+        outroot = inbase + '/stats_cmip5' + ('' if args.selected else '_all')
     else: # home
         inroot = 'C:/Dev/DATA/EUR-11-CMIP5'
-        outroot = 'C:/Dev/DATA/cordex-norway/stats_cmip5' + ('_selected' if args.selected else '')
+        outroot = 'C:/Dev/DATA/cordex-norway/stats_cmip5' + ('' if args.selected else '_all')
 
     if args.ensemble:
         #print('Reference period:', periods[int(args.ref_period)])

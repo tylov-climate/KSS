@@ -123,7 +123,7 @@ def create_diff_files(outroot, interval, stat_op, ens_op):
     # Compute differences for all periods against all ref-periods
     #
     m = {
-        '1971-2020':0, '1971-2000':1, '1985-2014':2, '1991-2020':3, '2041-2070':4, '2071-2100':5,
+        '1971-2020':0, '1971-2000':1, '1991-2020':2, '2041-2070':3, '2071-2100':4,
         'histo':0, 'rcp26':1, 'rcp45':2, 'rcp85':3, 'ssp370':4,
     }
     op = interval + stat_op
@@ -297,7 +297,7 @@ def parse_args():
         help='Create ensemble statistic files over all models'
     )
     parser.add_argument(
-        '-p', '--periods', default='1,2,3,4,5',
+        '-p', '--periods', default='1,2,3,4',
         help='Periods comma-separated num: (' + ', '.join(['%d:%d-%d' % (i, periods[i][0], periods[i][1]) for i in range(len(periods))]) + ')'
     )
     parser.add_argument(
@@ -332,12 +332,12 @@ if __name__ == '__main__':
     #periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD MIPS5
     #periods = ((1971, 2000),                            (2041, 2070), (2071, 2100)) # CMIP5
     #periods = ((1985, 2014), (1991, 2020),              (2041, 2070), (2071, 2100)) # CMIP6
-    periods = ((1971, 2020), (1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # full+5+6
+    periods = ((1971, 2020), (1971, 2000), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'std': 4}
     cdo = 'cdo'
 
     uname = platform.uname()
-    print(uname)
+    #print(uname)
 
     args = parse_args()
     stat_op = args.stat
@@ -355,8 +355,8 @@ if __name__ == '__main__':
         else:
             #inroot = '/projects/NS9001K/tylo/DATA/cordex-norway/EUR-11-CMIP6'
             #outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip6'
-            inroot='/datalake/NS9001K/dataset/tylo/NOR-11-CMIP6'
-            outroot = '/datalake/NS9001K/dataset/tylo/stats_cmip6'
+            inroot='/datalake/NS9001K/dataset/tylo/kin2100/NOR-11-CMIP6'
+            outroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip6'
     elif 'norceresearch' in uname.node: # NORCE HPC
         inbase = os.path.expanduser('~') + '/proj/kss/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP6'
