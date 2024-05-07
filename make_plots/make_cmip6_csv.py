@@ -211,20 +211,24 @@ if __name__ == '__main__':
     sub_path = stat_op
 
     if args.indir:
-        inroot = args.indir
+        inbase = inroot = args.indir
     elif '-nird' in uname: # NIRD or similar
-        inroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip6/%s' % sub_path
+        inbase = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip6'
+        inroot = '%s/%s' % (inbase, sub_path)
     elif 'norceresearch.no' in uname:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
         inroot = inbase + '/stats_v3/%s' % sub_path
     elif 'ppi-ext' in uname: # met.no
-        inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
+        inbase = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
+        inroot = inbase
     else: # home
-        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % sub_path
+        inbase = '.'
+        inroot = inbase
 
-    file = '%s/%s_cmip6', (inroot, stat_op)
+    #file = '%s/%s_cmip6' % (inbase, stat_op)
+    file = stat_op + '_cmip6'
 
-    print('Inroot:', inroot)
+    print('Inroot:', inbase)
     print('Output:', file + '.csv')
 
     if False: # os.path.exists(file + '.pkl'):

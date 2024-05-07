@@ -288,7 +288,8 @@ if __name__ == '__main__':
     else: # home
         inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % stat_op
 
-    file = '%s/%s_cmip5%s', (inroot, stat_op, sel)
+    #file = '%s/%s_cmip5%s' % (inroot, stat_op, sel)
+    file = stat_op + '_cmip5' + sel
 
     print('Inroot:', inroot)
     print('Output:', file + '.csv')
