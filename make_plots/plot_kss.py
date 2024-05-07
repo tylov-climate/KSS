@@ -35,7 +35,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cpf
 
 
-def catplot1(df):
+def cat1plot(df):
     df = df[df.Årstid == args.season]
     if args.period != None:
         df = df[df.Periode == periods_str[period]]
@@ -56,10 +56,10 @@ def catplot1(df):
     g.fig.suptitle('Euro-CORDEX 11: %s, %s, %s, %s' % (tit, season_map2[args.season], periods_str[period], experiment), fontsize=16, y=0.98)
     plt.tight_layout()
     if args.save:
-        save_plot(g, 'catplot1', variable)
+        save_plot(g, 'cat1plot', variable)
 
 
-def catplot2(df):
+def cat2plot(df):
     df = df[df.Årstid == args.season]
     if args.period != None:
         df = df[df.Periode == periods_str[period]]
@@ -80,7 +80,7 @@ def catplot2(df):
     g.fig.suptitle('Euro-CORDEX 11: %s, %s, %s, %s' % (tit, season_map2[args.season], periods_str[period], experiment), fontsize=16, y=0.98)
     plt.tight_layout()
     if args.save:
-        save_plot(g, 'catplot2', variable)
+        save_plot(g, 'cat2plot', variable)
 
 
 def barplot(df):
@@ -112,7 +112,7 @@ def barplot(df):
         save_plot(ax.get_figure(), 'barplot', variable)
 
 
-def kdeplot1(df):
+def kde1plot(df):
     # Kernel density estimation
     # https://seaborn.pydata.org/tutorial/distributions.html#kernel-density-estimation
     df = df[df.Årstid == args.season]
@@ -143,10 +143,11 @@ def kdeplot1(df):
     #wm.full_screen_toggle()
     #plt.tight_layout()
     if args.save:
-        save_plot(ax.get_figure(), 'kdeplot', variable)
+        #save_plot(ax.get_figure(), 'kde1plot', variable)
+        save_plot(None, 'kde1plot', variable)
 
 
-def kdeplot2(df):
+def kde2plot(df):
     # Kernel density estimation
     # https://seaborn.pydata.org/tutorial/distributions.html#kernel-density-estimation
     df = df[df.Årstid == args.season]
@@ -178,7 +179,8 @@ def kdeplot2(df):
     #wm.full_screen_toggle()
     #plt.tight_layout()
     if args.save:
-        save_plot(ax.get_figure(), 'kdeplot', variable)
+        #save_plot(ax.get_figure(), 'kde2plot', variable)
+        save_plot(None, 'kde2plot', variable)
 
 
 def grid_scatterplot_diff(df):
@@ -347,7 +349,9 @@ def save_plot(g, plotname, varname=''):
     varname = varname.replace(' ', '-')
     os.makedirs(outroot, exist_ok=True)
     selected = '_all' if args.all else ''
-    g.savefig('%s/eur11_%s%s_%s_period%d_%s_%s.png' % (outroot, plotname, selected, varname, period, args.season, experiment))
+    name = 'eur11_%s%s_%s_period%d_%s_%s.png' % (plotname, selected, varname, period, args.season, experiment)
+    print('plots_cmip%s/%s' % (args.cmip, name))
+    #g.savefig('%s/%s' % (outroot, name))
 
 
 #def test_groupby():
@@ -461,7 +465,7 @@ if __name__ == '__main__':
 
     uname = platform.uname()[1]
     if '-nird' in uname: # NIRD or similar
-        inroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip%s' % args.cmip
+        inroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_csv'
         outroot = '/datalake/NS9001K/dataset/tylo/kin2100/plots_cmip%s' % args.cmip
         #inroot = 'stats_cmip%s' % args.cmip
         #outroot = 'plots_cmip%s' % args.cmip
@@ -472,7 +476,7 @@ if __name__ == '__main__':
         inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
         outroot = '../plots%s' % args.cmip
     else: # home
-        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3'
+        inroot = '.'
         outroot = '../plots_cmip%s' % args.cmip
     if args.indir != None:
         inroot = args.indir
@@ -523,16 +527,16 @@ if __name__ == '__main__':
 
     if args.plot == 'bar':
         barplot(df)
-    elif args.plot == 'cat':
-        catplot1(df)
+    elif args.plot == 'cat1':
+        cat1plot(df)
     elif args.plot == 'cat2':
         catplot2(df)
+    elif args.plot == 'kde1':
+        kde1plot(df)
+    elif args.plot == 'kde2':
+        kde2plot(df)
     elif args.plot == 'geo':
         geoplot()
-    elif args.plot == 'kde':
-        kdeplot1(df)
-    elif args.plot == 'kde2':
-        kdeplot2(df)
     elif args.plot == 'scatter':
         #sns.set_style('whitegrid')
         #sns.set_style('whitegrid', {'axes.grid' : True,'axes.edgecolor':'none'})
@@ -542,5 +546,6 @@ if __name__ == '__main__':
         else:
             grid_scatterplot_abs(df)
 
-    if not args.save:
-        plt.show()
+    #if not args.save:
+    #    plt.show()
+    plt.show()
