@@ -37,7 +37,8 @@ import cartopy.feature as cpf
 
 def catplot1(df):
     df = df[df.Årstid == args.season]
-    df = df[df.Periode == periods_str[period]]
+    if args.period != None:
+        df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment == experiment]
     df = df.sort_values('FullModel')
     print(df)
@@ -60,7 +61,8 @@ def catplot1(df):
 
 def catplot2(df):
     df = df[df.Årstid == args.season]
-    df = df[df.Periode == periods_str[period]]
+    if args.period != None:
+        df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment == experiment]
     df = df.sort_values('FullModel')
     print(df)
@@ -83,23 +85,27 @@ def catplot2(df):
 
 def barplot(df):
     df = df[df.Årstid == args.season]
-    df = df[df.Periode == periods_str[period]]
+    if args.period != None:
+        df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment == experiment]
     df = df.sort_values('FullModel')
     print(df)
-
-    sns.set(style='whitegrid')
+    sns.set_theme(style='whitegrid')
     sns.set(rc={'figure.figsize':(11, 9.6)})
     ax = sns.barplot(data=df, x=variable, y='FullModel') # orient='h'
-    ax.set_xlabel('Periode: ' + periods_str[period] + ', ' + experiment + ', ' +
-                  season_map2[args.season] + ', ' + variable) #, fontsize=12)
-
-    if args.selected:
-        ax.set_ylabel('Euro-CORDEX 11: Utvalgte klimamodeller med 3 scenarioer')
-        ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
+    if args.period != None:
+        ax.set_xlabel('Periode: ' + periods_str[period] + ', ' + experiment + ', ' +
+                      season_map2[args.season] + ', ' + variable) #, fontsize=12)
     else:
+        ax.set_xlabel('All periods, ' + experiment + ', ' +
+                      season_map2[args.season] + ', ' + variable) #, fontsize=12)
+
+    if args.all:
         ax.set_ylabel('Euro-CORDEX 11: Alle klimamodeller')
         ax.set_yticklabels(ax.get_yticklabels(), fontsize=6)
+    else:
+        ax.set_ylabel('Euro-CORDEX 11: Utvalgte klimamodeller med 3 scenarioer')
+        ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
     ax.set_xticklabels(ax.get_xticks(), fontsize=10)
     plt.tight_layout()
     if args.save:
@@ -110,22 +116,25 @@ def kdeplot1(df):
     # Kernel density estimation
     # https://seaborn.pydata.org/tutorial/distributions.html#kernel-density-estimation
     df = df[df.Årstid == args.season]
-    if experiment != 'all':
+    if args.experiment != None:
         df = df[df.Eksperiment == experiment]
     if args.gcm:
         df = df[df.Modell == args.gcm]
     if args.rcm:
         df = df[df['Modell Id'] == args.rcm]
-    #df = df[df.Periode == periods_str[period]]
+    if args.period != None:
+        df = df[df.Periode == periods_str[period]]
     print(df)
     sns.set(rc={'figure.figsize':(30, 25)})
     ax = sns.displot(data=df, x=variable, hue='Periode', kind='kde', fill=True,
                      height=10, aspect=1.5)
-
-    sel = 'utvalgte modeller' if args.selected else 'alle modeller'
-    if args.gcm: sel = args.gcm
-    if args.rcm: sel += '-' + args.rcm
-    tit =  'Alle perioder, ' + experiment + ', ' + sel + ', ' + season_map2[args.season] + '.'
+    sel = 'utvalgte modeller' if not args.all else 'alle modeller'
+    if args.gcm: sel = 'GCM:' + args.gcm
+    if args.rcm: sel += '-RCM:' + args.rcm
+    if args.period is None:
+        tit =  'Alle perioder, ' + experiment + ', ' + sel + ', ' + season_map2[args.season] + '.'
+    else:
+        tit =  periods_str[period] + ', ' + experiment + ', ' + sel + ', ' + season_map2[args.season] + '.'
     ax.fig.suptitle('Euro-CORDEX 11: ' + tit, fontsize=16, y=0.98)
 
     #ax.fig.set_dpi(100)
@@ -141,9 +150,10 @@ def kdeplot2(df):
     # Kernel density estimation
     # https://seaborn.pydata.org/tutorial/distributions.html#kernel-density-estimation
     df = df[df.Årstid == args.season]
-    if experiment != 'all':
+    if args.experiment != None:
         df = df[df.Eksperiment == experiment]
-    #df = df[df.Periode == periods_str[period]]
+    if args.period != None:
+        df = df[df.Periode == periods_str[period]]
     if args.gcm:
         df = df[df.Modell == args.gcm]
     if args.rcm:
@@ -152,10 +162,14 @@ def kdeplot2(df):
     sns.set(rc={'figure.figsize':(30, 25)})
     ax = sns.displot(data=df, x=variable, hue='FullModel', kind='kde', fill=True,
                      height=10, aspect=1.5)
-    sel = 'utvalgte modeller' if args.selected else 'alle modeller'
-    if args.gcm: sel = args.gcm
-    if args.rcm: sel += '-' + args.rcm
-    tit =  'Alle perioder, ' + experiment + ', ' + sel + ', ' + season_map2[args.season] + '.'
+    sel = 'utvalgte modeller' if not args.all else 'alle modeller'
+    if args.gcm: sel = 'GCM:' + args.gcm
+    if args.rcm: sel += '-RCM:' + args.rcm
+    if args.period is None:
+        tit =  'Alle perioder, ' + experiment + ', ' + sel + ', ' + season_map2[args.season] + '.'
+    else:
+        tit =  periods_str[period] + ', ' + experiment + ', ' + sel + ', ' + season_map2[args.season] + '.'
+
     ax.fig.suptitle('Euro-CORDEX 11: ' + tit, fontsize=16, y=0.98)
 
     #ax.fig.set_dpi(100)
@@ -172,13 +186,12 @@ def grid_scatterplot_diff(df):
     sns.set_style('whitegrid')
     sns.set(style='ticks')
     df = df[df.Årstid == args.season]
-    #df = df[df.Periode == periods_str[period]]
+    if args.period != None:
+        df = df[df.Periode == periods_str[period]]
     df = df[df.Eksperiment != 'historical']
+    if args.experiment != None:
+        df = df[df.Eksperiment == experiment]
     print(df)
-    #if period >= 0:
-    #    df = df[df.Eksperiment == experiment]
-    #else:
-    #    df = df[(df.Eksperiment == experiment) | (df.Eksperiment == 'historical')]
 
     g = sns.FacetGrid(df, col='Eksperiment',
                           row='Periode',
@@ -195,12 +208,10 @@ def grid_scatterplot_diff(df):
 
 def grid_scatterplot_abs(df):
     df = df[df.Årstid == args.season]
-    df = df[df.Periode == periods_str[period]]
-    #if experiment != 'all':
-    #    if period >= 0:
-    #        df = df[df.Eksperiment == experiment]
-    #    else:
-    #        df = df[(df.Eksperiment == experiment) | (df.Eksperiment == 'historical')]
+    if args.period != None:
+        df = df[df.Periode == periods_str[period]]
+    if args.experiment != None:
+        df = df[df.Eksperiment == experiment]
     print(df)
     sns.set(style='ticks')
     g = sns.FacetGrid(df, col='Eksperiment',
@@ -242,7 +253,7 @@ def scatterplot_func(x, y, style, **kwargs):
     extremes, xmd, ymd, all = get_extreme_values(xa, ya)
 
     c = kwargs.get('color', 'k')
-    if args.selected:
+    if not args.all:
         list = all  # plot all names
     elif c[2] != 1.0:
         list = np.unique(np.where(ya == max(ya))) # plot highest precipitation name only
@@ -335,7 +346,7 @@ def save_plot(g, plotname, varname=''):
     global period, experiment
     varname = varname.replace(' ', '-')
     os.makedirs(outroot, exist_ok=True)
-    selected = '_selected' if args.selected else ''
+    selected = '_all' if args.all else ''
     g.savefig('%s/eur11_%s%s_%s_period%d_%s_%s.png' % (outroot, plotname, selected, varname, period, args.season, experiment))
 
 
@@ -350,18 +361,15 @@ def save_plot(g, plotname, varname=''):
 #    df['TAS endring'] = df1['TAS celsius'] - df1['A'].map(df2.set_index('A')['B'])
 
 exp_names = {
-    'histo-0': 'historical_1971-2020',
+    #'histo-0': 'historical_1971-2020',
     'histo-1': 'historical_1971-2000',
-    'histo-2': 'historical_1985-2014',
-    'histo-3': 'historical_1991-2020',
-    'rcp26-4': 'rcp26_2041-2070',
-    'rcp45-4': 'rcp45_2041-2070',
-    'rcp85-4': 'rcp85_2041-2070',
-    'ssp370-4': 'ssp370_2041-2070',
-    'rcp26-5': 'rcp26_2071-2100',
-    'rcp45-5': 'rcp45_2071-2100',
-    'rcp85-5': 'rcp85_2071-2100',
-    'ssp370-5': 'ssp370_2071-2100',
+    'histo-2': 'historical_1991-2020',
+    'rcp45-3': 'rcp45_2041-2070',
+    'rcp85-3': 'rcp85_2041-2070',
+    'ssp370-3': 'ssp370_2041-2070',
+    'rcp45-4': 'rcp45_2071-2100',
+    'rcp85-4': 'rcp85_2071-2100',
+    'ssp370-4': 'ssp370_2071-2100',
 }
 
 def get_args():
@@ -371,20 +379,20 @@ def get_args():
     print('')
 
     parser.add_argument(
-        '--cmip', default='6',
-        help='CMIP (5=default, 6)'
+        '-c', '--cmip', default='6',
+        help='CMIP (5, 6=default)'
     )
     parser.add_argument(
-        '-p', '--plot', required=False, default='bar',
-        help='Kind of plot (bar=default, scatter, kde, cat1, cat2, geo)'
+        '-P', '--plot', required=False, default='bar',
+        help='Plot type (bar=default, scatter, kde, cat1, cat2, geo)'
     )
     parser.add_argument(
-        '-t', '--time-interval', default=None,
-        help='Time interval: (%s)' % ', '.join(['%d:%s' % (i, periods_str[i]) for i in range(len(periods))])
+        '-p', '--period', default=None,
+        help='Period (%s)' % ', '.join(['%d:%s' % (i+1, periods_str[i]) for i in range(len(periods))])
     )
     parser.add_argument(
         '-e', '--experiment', default=None,
-        help='Experiment (historical=default, all, rcp26, rcp45, rcp85, ssp370)'
+        help='Experiment (historical=default, all, rcp45, rcp85, ssp370)'
     )
     parser.add_argument(
         '-s', '--season', default='ANN',
@@ -408,13 +416,13 @@ def get_args():
     )
     parser.add_argument(
         '-d', '--diff', default=None,
-        help='Difference to experiment (histo-1, histo-2, histo-3,'
-             'rcp26-4, rcp45-4, rcp85-4, ssp370-4,'
-             'rcp26-5, rcp45-5, rcp85-5, ssp370-5)'
+        help='Difference to experiment (histo-1, histo-2, '
+             'rcp45-3, rcp85-3, ssp370-3, '
+             'rcp45-4, rcp85-4, ssp370-4)'
     )
     parser.add_argument(
-        '--selected', action='store_true',
-        help='Plot a selection of models only'
+        '--all', action='store_true',
+        help='Plot a all, not only a selection of models'
     )
 
     parser.add_argument(
@@ -441,7 +449,7 @@ def get_args():
 markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X']
 #periods = ((1971, 2000),                             (2041, 2070), (2071, 2100)) # cmip5
 #periods = (              (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # cmip6
-periods  = ((1971, 2000), (1985, 2014), (1991, 2020), (2041, 2070), (2071, 2100)) # cmip5+cmip6
+periods  = ((1971, 2000), (1991, 2020), (2041, 2070), (2071, 2100)) # cmip5+cmip6
 periods_str = ['%d-%d' % (p[0], p[1]) for p in periods]
 season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
 season_map2 = {'ANN': 'jan-des', 'MAM': 'mars-mai', 'JJA': 'juni-aug', 'SON': 'sep-nov', 'DJF': 'des-feb'}
@@ -471,15 +479,15 @@ if __name__ == '__main__':
     if args.outdir != None:
         outroot = args.outdir
 
-    selected = '_selected' if args.selected else ''
-    
-    period = args.time_interval
-    if period:
-        period = int(period)
+    selected = '_all' if args.all else ''
+
+    period = args.period
+    if period is not None:
+        period = int(period) - 1
     experiment = args.experiment
     if experiment is None:
-        if period and period > 2:
-            experiment = 'rcp45' if args.cmip == '5' else 'ssp370'
+        if period is not None and period >= 2:
+            experiment = 'rcp85' if args.cmip == '5' else 'ssp370'
         else:
             experiment = 'historical'
     if period is None:

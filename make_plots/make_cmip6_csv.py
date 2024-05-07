@@ -116,12 +116,10 @@ def create_dataframe(stats, dims, stat_op):
         'Ensemble': [], 'RCM Ver': [],
         'TAS celsius': [], 'PR mm.år': [],
         'TAS diff-historical_1971-2000': [],
-        'TAS diff-historical_1985-2014': [],
         'TAS diff-historical_1991-2020': [],
         'TAS diff-ssp370_2041-2070': [],
         'TAS diff-ssp370_2071-2100': [],
         'PR diff-historical_1971-2000': [],
-        'PR diff-historical_1985-2014': [],
         'PR diff-historical_1991-2020': [],
         'PR diff-ssp370_2041-2070': [],
         'PR diff-ssp370_2071-2100': [],
@@ -224,7 +222,7 @@ if __name__ == '__main__':
     else: # home
         inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % sub_path
 
-    file = '%s_cmip6' % stat_op
+    file = '%s/%s_cmip6', (inroot, stat_op)
 
     print('Inroot:', inroot)
     print('Output:', file + '.csv')

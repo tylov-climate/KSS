@@ -112,6 +112,10 @@ def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
     if os.path.isfile('tmp2.nc'):
         os.remove('tmp2.nc')
 
+    create_ensdiff_files(outroot, interval, stat_op, ens_op)
+
+
+def create_ensdiff_files(outroot, interval, stat_op, ens_op):
     #
     # Compute differences for all periods against all ref-periods
     #
@@ -119,7 +123,9 @@ def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
         '1971-2020':0, '1971-2000':1, '1991-2020':2, '2041-2070':3, '2071-2100':4,
         'histo':0, 'rcp26':1, 'rcp45':2, 'rcp85':3,
     }
+    op = interval + stat_op
     outdir = os.path.join(outroot, 'ensdiff_%s%s' % (interval, ens_op))
+
     for ref in glob.glob(os.path.join(outroot, 'ens%s_%s/*.nc' % (ens_op, op))):
         rbase = os.path.basename(ref)
         rpart = rbase.split('_')
@@ -128,7 +134,8 @@ def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
             base = os.path.basename(f)
             part = base.split('_')
             var = part[0]
-            if f == ref or var != rvar or m[rpart[2]] > m[part[2]] or m[rpart[3]] > m[part[3]]:
+            period = part[2]
+            if f == ref or var != rvar or m[rpart[2]] > m[period]:
                 continue
             if part[2] == rpart[2]:
                 outfile = os.path.join(outdir, base.replace('.nc', '_diff_%s.nc' % rpart[3]))
@@ -138,7 +145,6 @@ def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
             print('diff:', outfile)
             if not args.dry:
                 create_diff_file(var, f, ref, outfile)
-
 
 
 # hist => 2005
@@ -169,7 +175,7 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
             if not (var_id == 'pr' or var_id == 'tas'):
                 continue
 
-            if args.selected:
+            if not args.all:
                 try:
                     rcms = selected_models[model_id]
                     rcm_id = '%s_%s' % (source_id, ensemble_id)
@@ -280,8 +286,8 @@ def parse_args():
         help='Create ensemble statistic files over all or selected models'
     )
     parser.add_argument(
-        '-l', '--selected', action='store_true',
-        help='Chose only a selected group of models'
+        '--all', action='store_true',
+        help='Chose all models, not only a selected group'
     )
     parser.add_argument(
         '-p', '--periods', default='1,2,3,4',
@@ -344,20 +350,20 @@ if __name__ == '__main__':
     if '-nird' in uname.node: # NIRD or similar
         inbase = '/projects/NS9001K/tylo/DATA/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP5'
-        #outroot = '/nird/home/tylo/proj/KSS/stats_cmip5' + ('' if args.selected else '_all')
-        #outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip5' + ('' if args.selected else '_all')
-        outroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip5' + ('' if args.selected else '_all')
+        #outroot = '/nird/home/tylo/proj/KSS/stats_cmip5' + ('_all' if args.all else '')
+        #outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip5' + ('_all' if args.all else '')
+        outroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip5' + ('_all' if args.all else '')
     elif 'norceresearch.no' in uname.node:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP5'
-        outroot = inbase + '/stats_cmip5' + ('' if args.selected else '_all')
+        outroot = inbase + '/stats_cmip5' + ('_all' if args.all else '')
     elif 'ppi-ext' in uname.node: # met.no
         inbase = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway'
         inroot = inbase + '/EUR-11'
-        outroot = inbase + '/stats_cmip5' + ('' if args.selected else '_all')
+        outroot = inbase + '/stats_cmip5' + ('_all' if args.all else '')
     else: # home
         inroot = 'C:/Dev/DATA/EUR-11-CMIP5'
-        outroot = 'C:/Dev/DATA/cordex-norway/stats_cmip5' + ('' if args.selected else '_all')
+        outroot = 'C:/Dev/DATA/cordex-norway/stats_cmip5' + ('_all' if args.all else '')
 
     if args.ensemble:
         #print('Reference period:', periods[int(args.ref_period)])

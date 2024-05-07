@@ -115,20 +115,20 @@ def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
     if os.path.isfile('tmp2.nc'):
         os.remove('tmp2.nc')
 
-    create_diff_files(outroot, interval, stat_op, ens_op)
+    create_ensdiff_files(outroot, interval, stat_op, ens_op)
 
-    
-def create_diff_files(outroot, interval, stat_op, ens_op):
+
+def create_ensdiff_files(outroot, interval, stat_op, ens_op):
     #
     # Compute differences for all periods against all ref-periods
     #
     m = {
         '1971-2020':0, '1971-2000':1, '1991-2020':2, '2041-2070':3, '2071-2100':4,
-        'histo':0, 'rcp26':1, 'rcp45':2, 'rcp85':3, 'ssp370':4,
+        'histo':0, 'ssp370':3,
     }
     op = interval + stat_op
     outdir = os.path.join(outroot, 'ensdiff_%s%s' % (interval, ens_op))
-    
+
     for ref in glob.glob(os.path.join(outroot, 'ens%s_%s/*.nc' % (ens_op, op))):
         rbase = os.path.basename(ref)
         rpart = rbase.split('_')
@@ -149,6 +149,37 @@ def create_diff_files(outroot, interval, stat_op, ens_op):
             if not args.dry:
                 create_diff_file(var, f, ref, outfile)
 
+
+def create_modeldiff_files(outroot, interval, stat_op, ens_op):
+    #
+    # Compute differences for all periods against all ref-periods
+    #
+    m = {
+        '1971-2020':0, '1971-2000':1, '1991-2020':2, '2041-2070':3, '2071-2100':4,
+        'histo':0, 'ssp370':3,
+    }
+    op = interval + stat_op
+    outdir = os.path.join(outroot, 'modeldiff_%s%s' % (interval, ens_op))
+
+    for ref in glob.glob(os.path.join(outroot, 'ens%s_%s/*.nc' % (ens_op, op))):
+        rbase = os.path.basename(ref)
+        rpart = rbase.split('_')
+        rvar = rpart[0]
+        for f in glob.glob(os.path.join(outroot, 'ens%s_%s/*.nc' % (ens_op, op))):
+            base = os.path.basename(f)
+            part = base.split('_')
+            var = part[0]
+            period = part[2]
+            if f == ref or var != rvar or m[rpart[2]] > m[period]:
+                continue
+            if part[2] == rpart[2]:
+                outfile = os.path.join(outdir, base.replace('.nc', '_diff_%s.nc' % rpart[3]))
+            else:
+                outfile = os.path.join(outdir, base.replace('.nc', '_diff_%s.nc' % rpart[2]))
+
+            print('diff:', outfile)
+            if not args.dry:
+                create_diff_file(var, f, ref, outfile)
 
 # hist => 2005
 # rcp4.5 start 2006

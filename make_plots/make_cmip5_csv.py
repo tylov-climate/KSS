@@ -140,36 +140,23 @@ def average_data(inroot, output):
     return stats, dims
 
 
-def create_dataframe(stats, dims, stat_op, use_selected=False):
+def create_dataframe(stats, dims, stat_op, use_all):
     d = dims['inv']
-    '''
-    m = {'Season': [], 'Experiment': [], 'Period': [],
-         'Institute': [], 'Model': [], 'Model Id': [], 'Ensemble': [], 'RCM Ver': [],
-         'TAS celsius': [], 'PR mm.year': [],
-         'TAS diff': [], 'PR diff': [],
-    }
-    '''
     m = {
         'Årstid': [], 'Eksperiment': [], 'Periode': [],
         'Institutt': [], 'Modell': [], 'Modell Id': [],
         'Ensemble': [], 'RCM Ver': [],
         'TAS celsius': [], 'PR mm.år': [],
         'TAS diff-historical_1971-2000': [],
-        'TAS diff-historical_1985-2014': [],
         'TAS diff-historical_1991-2020': [],
-        'TAS diff-rcp26_2041-2070': [],
         'TAS diff-rcp45_2041-2070': [],
         'TAS diff-rcp85_2041-2070': [],
-        'TAS diff-rcp26_2071-2100': [],
         'TAS diff-rcp45_2071-2100': [],
         'TAS diff-rcp85_2071-2100': [],
         'PR diff-historical_1971-2000': [],
-        'PR diff-historical_1985-2014': [],
         'PR diff-historical_1991-2020': [],
-        'PR diff-rcp26_2041-2070': [],
         'PR diff-rcp45_2041-2070': [],
         'PR diff-rcp85_2041-2070': [],
-        'PR diff-rcp26_2071-2100': [],
         'PR diff-rcp45_2071-2100': [],
         'PR diff-rcp85_2071-2100': [],
     }
@@ -184,7 +171,7 @@ def create_dataframe(stats, dims, stat_op, use_selected=False):
                 model = model_name.split('_')
                 source = model[1].split('-')
 
-                if use_selected:
+                if not use_all:
                     match = False
                     for key, val in selected_models.items():
                         if match: break
@@ -272,8 +259,8 @@ def parse_args():
         help='Output file directory'
     )
     parser.add_argument(
-        '--selected', action='store_true',
-        help='Use a selection of models only'
+        '--all', action='store_true',
+        help='Use all models, not just the selection'
     )
     return parser.parse_args()
 
@@ -286,23 +273,22 @@ if __name__ == '__main__':
     args = parse_args()
 
     stat_op = '%s%s' % (args.interval, args.stat) # e.g. yseasmean
-    sub_path = stat_op
+    sel = '_all' if args.all else ''
+    print('sel', sel)
 
     if args.indir:
         inroot = args.indir
     elif '-nird' in uname: # NIRD or similar
-        inroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip5/%s' % sub_path
+        inroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip5%s/%s' % (sel, stat_op)
     elif 'norceresearch.no' in uname:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
-        inroot = inbase + '/stats_v3/%s' % sub_path
+        inroot = inbase + '/stats_v3/%s' % stat_op
     elif 'ppi-ext' in uname: # met.no
         inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
     else: # home
-        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % sub_path
+        inroot = 'C:/Dev/DATA/cordex-norway/stats_v3/%s' % stat_op
 
-    file = '%s_cmip5' % stat_op
-    if args.selected:
-        file += '_selected'
+    file = '%s/%s_cmip5%s', (inroot, stat_op, sel)
 
     print('Inroot:', inroot)
     print('Output:', file + '.csv')
@@ -318,7 +304,7 @@ if __name__ == '__main__':
         print(dims['exps'])
         print(dims['stat_ops'])
         print(dims['variables'])
-        df = create_dataframe(stats, dims, stat_op, args.selected)
+        df = create_dataframe(stats, dims, stat_op, args.all)
 
     print(df)
     #df.to_pickle(file + '.pkl')
