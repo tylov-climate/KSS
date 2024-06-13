@@ -48,11 +48,15 @@ selected_models = {
 }
 
 
-def load_mask():
+def load_mask_senorge2018():
     img = mpimg.imread('norway_mask.png')
     img = img[:, :, 0] > 0.5
     return np.flip(img, axis=0)
 
+def load_mask():
+    with nc4.Dataset('NorwayMask_EUR11.nc') as src:
+        mask = src.variables['Norway'][:]
+    return np.logical_not(mask) # invert!
 
 # Save load mean of the statistical data over periods and seasons. (avg, variance, ...)
 
