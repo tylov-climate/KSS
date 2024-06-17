@@ -42,6 +42,8 @@ def average_data(inroot, output):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
             var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period = f[:-3].split('_')
+            for prefix in ('MIROC-', 'MPI-M-', 'EC-Earth-Consortium-'):
+                model_id = model_id.replace(prefix, '')
             season = 'all'
 
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
@@ -83,6 +85,8 @@ def average_data(inroot, output):
         for path in sorted(glob.glob(sub_path + '/*.nc')):
             f = os.path.basename(path)
             var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period = f[:-3].split('_')
+            for prefix in ('MIROC-', 'MPI-M-', 'EC-Earth-Consortium-'):
+                model_id = model_id.replace(prefix, '')
             season = 'all'
             #print(var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period)
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
@@ -231,8 +235,8 @@ if __name__ == '__main__':
         inbase = '.'
         inroot = inbase
 
-    #file = '%s/%s_cmip6' % (inbase, stat_op)
-    file = stat_op + '_cmip6'
+    #file = stat_op + '_cmip6'
+    file = '/datalake/NS9001K/dataset/tylo/kin2100/stats_csv/' + stat_op + '_cmip6'
 
     print('Inroot:', inbase)
     print('Output:', file + '.csv')

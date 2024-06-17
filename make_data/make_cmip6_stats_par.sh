@@ -12,7 +12,8 @@
     #    done
     #done
 
-inst="CLMcom-KIT CLMcom-BTU HCLIMcom-METNo HCLIMcom-SMHI KNMI"
+#inst="CLMcom-KIT CLMcom-BTU HCLIMcom-METNo HCLIMcom-SMHI KNMI"
+inst="KNMI"
 interval="yseas" # "yseas ymon"
 operation="mean max min"
 

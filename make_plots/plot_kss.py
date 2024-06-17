@@ -143,8 +143,7 @@ def kde1plot(df):
     #wm.full_screen_toggle()
     #plt.tight_layout()
     if args.save:
-        #save_plot(ax.get_figure(), 'kde1plot', variable)
-        save_plot(None, 'kde1plot', variable)
+        save_plot(ax.fig, 'kde1plot', variable)
 
 
 def kde2plot(df):
@@ -179,8 +178,7 @@ def kde2plot(df):
     #wm.full_screen_toggle()
     #plt.tight_layout()
     if args.save:
-        #save_plot(ax.get_figure(), 'kde2plot', variable)
-        save_plot(None, 'kde2plot', variable)
+        save_plot(ax.fig, 'kde2plot', variable)
 
 
 def grid_scatterplot_diff(df):
@@ -345,13 +343,22 @@ def geoplot_sub(rlat, rlon, var, fig, pos, title, type=1, res=30):
 
 
 def save_plot(g, plotname, varname=''):
-    global period, experiment
-    varname = varname.replace(' ', '-')
+    global period, experiment, outfile, figure
     os.makedirs(outroot, exist_ok=True)
-    selected = '_all' if args.all else ''
-    name = 'eur11_%s%s_%s_period%d_%s_%s.png' % (plotname, selected, varname, period, args.season, experiment)
-    print('plots_cmip%s/%s' % (args.cmip, name))
-    #g.savefig('%s/%s' % (outroot, name))
+    var = args.var if args.var else ''
+    #var = varname.replace(' ', '-')
+    per = periods_str[period] if args.period else 'allper'
+    exp = experiment if args.experiment or args.period else 'allexp'
+    gcm = args.gcm if args.gcm else 'allgcm'
+    rcm = args.rcm if args.rcm else 'allrcm'
+    sel = '_allmod' if args.all else ''
+    outfile = f'{plotname}_{var}_{gcm}_{rcm}_{per}_{args.season}_{exp}{sel}.png'
+    figure = g
+    #full = outroot + '/' + outfile 
+    #print('save to:', full)
+    #print('plots_cmip%s/%s' % (args.cmip, name))
+    #g.savefig(full)
+    #g.savefig(name)
 
 
 #def test_groupby():
@@ -396,15 +403,15 @@ def get_args():
     )
     parser.add_argument(
         '-e', '--experiment', default=None,
-        help='Experiment (historical=default, all, rcp45, rcp85, ssp370)'
+        help='Experiment (historical=default, rcp45, rcp85, ssp370)'
     )
     parser.add_argument(
         '-s', '--season', default='ANN',
         help='Season to be plotted (ANN=default, MAM, JJA, SON, DJF)'
     )
     parser.add_argument(
-        '-v', '--var', default='TAS',
-        help='Variable (TAS=default, PR)'
+        '-v', '--var', default=None,
+        help='Variable (TAS, PR)'
     )
     parser.add_argument(
         '-g', '--gcm', default=None,
@@ -426,7 +433,7 @@ def get_args():
     )
     parser.add_argument(
         '--all', action='store_true',
-        help='Plot a all, not only a selection of models'
+        help='Plot all, not only a selection of models (cmip5)'
     )
 
     parser.add_argument(
@@ -456,7 +463,7 @@ markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P',
 periods  = ((1971, 2000), (1991, 2020), (2041, 2070), (2071, 2100)) # cmip5+cmip6
 periods_str = ['%d-%d' % (p[0], p[1]) for p in periods]
 season_map = {'ANN': 0, 'MAM': 1, 'JJA': 2, 'SON': 3, 'DJF': 4}
-season_map2 = {'ANN': 'jan-des', 'MAM': 'mars-mai', 'JJA': 'juni-aug', 'SON': 'sep-nov', 'DJF': 'des-feb'}
+season_map2 = {'ANN': 'årlig', 'MAM': 'mars-mai', 'JJA': 'juni-aug', 'SON': 'sep-nov', 'DJF': 'des-feb'}
 norway_rotated_pole = (-6.595, 4.735, 7.535, 20.625) # lon - lat
 
 
@@ -466,7 +473,7 @@ if __name__ == '__main__':
     uname = platform.uname()[1]
     if '-nird' in uname: # NIRD or similar
         inroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_csv'
-        outroot = '/datalake/NS9001K/dataset/tylo/kin2100/plots_cmip%s' % args.cmip
+        outroot = '/datalake/NS9001K/dataset/tylo/kin2100/plots_cmip%s/%s' % (args.cmip, args.season)
         #inroot = 'stats_cmip%s' % args.cmip
         #outroot = 'plots_cmip%s' % args.cmip
     elif 'norceresearch.no' in uname:
@@ -525,6 +532,8 @@ if __name__ == '__main__':
     if args.cmip == '5':
         df = df[df.FullModel != 'MIROC-MIROC5_WRF361H_r1i1p1']
 
+    outfile = None
+    figure = None
     if args.plot == 'bar':
         barplot(df)
     elif args.plot == 'cat1':
@@ -546,6 +555,15 @@ if __name__ == '__main__':
         else:
             grid_scatterplot_abs(df)
 
-    #if not args.save:
-    #    plt.show()
-    plt.show()
+    mng = plt.get_current_fig_manager()
+    mng.resize(*mng.window.maxsize())
+
+    if args.save:
+        plt.show(block=False)
+        plt.pause(1)
+        savefile = outroot + '/' + outfile
+        #savefile = outfile
+        print('save', savefile)
+        figure.savefig(savefile)
+    else:
+        plt.show()
