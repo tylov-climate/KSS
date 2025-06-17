@@ -158,7 +158,7 @@ def kde2plot(df):
         df = df[df.Modell == args.gcm]
     if args.rcm:
         df = df[df["Modell Id"] == args.rcm]
-    print(df)
+    print(df.to_string())
     sns.set(rc={'figure.figsize':(30, 25)})
     ax = sns.displot(data=df, x=variable, hue='FullModel', kind='kde', fill=True,
                      height=10, aspect=1.5)
@@ -182,13 +182,14 @@ def kde2plot(df):
 
 
 def grid_scatterplot_diff(df):
-    global periods_str
+    #global periods_str
     sns.set_style('whitegrid')
     sns.set(style='ticks')
+
     df = df[df.Årstid == args.season]
     if args.period != None:
         df = df[df.Periode == periods_str[period]]
-    df = df[df.Eksperiment != 'historical']
+    #df = df[df.Eksperiment != 'historical']
     if args.experiment != None:
         df = df[df.Eksperiment == experiment]
     print(df)
@@ -197,16 +198,57 @@ def grid_scatterplot_diff(df):
                           row='Periode',
                           hue='Modell', palette='bright', height=9.6, aspect=0.6,
                           legend_out=False, sharex=False, sharey=True) # despine=False
-    g.fig.suptitle('Nedbør- og temperatur-endring, fastlands-norge, %s' % season_map2[args.season], fontsize=16, y=0.98)
+    g.fig.suptitle('Nedbør- og temperatur-endring, fastlands-norge, %s, %s' % (season_map2[args.season], exp_names[args.diff]), fontsize=16, y=0.98)
     g.map(scatterplot_func, 'TAS diff-%s' % exp_names[args.diff], 'PR diff-%s' % exp_names[args.diff], 'Modell Id') # , markers=markers) #, style='Modell Id')
     g.fig.subplots_adjust(top=0.91, left=0.04, bottom=0.07, wspace=0.1, hspace=1.5)
-    g.set_axis_labels('Temperaturendring [°C]', 'Nedbørsendring [%]')
+    g.set_axis_labels('Temperaturendring [°C]   ▾ = median, ✕ = gjennomsnitt', 'Nedbørsendring [%]')
     g.add_legend()
     if args.save:
         save_plot(g, 'scatterplot_diff')
 
 
+def kde_scatterplot_diff(df, df2):
+    #global periods_str
+    sns.set_style('whitegrid')
+    sns.set(style='ticks')
+
+    df = df[df.Årstid == args.season]
+    if args.period != None:
+        df = df[df.Periode == periods_str[period]]
+    if args.experiment != None:
+        df = df[df.Eksperiment == experiment]
+
+    df2 = df2[df2.Årstid == args.season]
+    if args.period != None:
+        df2 = df2[df2.Periode == periods_str[period]]
+    if args.experiment != None:
+        df2 = df2[df2.Eksperiment == experiment]
+
+    print(df2)
+
+
+    g = sns.FacetGrid(df, col='Eksperiment',
+                          row='Periode',
+                          hue='Modell', palette='bright', height=9.6, aspect=0.6,
+                          legend_out=False, sharex=False, sharey=True) # despine=False
+    g.fig.suptitle('Nedbør- og temperatur-endring, fastlands-norge, %s, %s' % (season_map2[args.season], exp_names[args.diff]), fontsize=16, y=0.98)
+
+    sns.kdeplot(data=df2, x='TAS diff-%s' % exp_names[args.diff], y='PR diff-%s' % exp_names[args.diff], fill=True, palette='bright')
+
+    g.map(scatterplot_func, 'TAS diff-%s' % exp_names[args.diff], 'PR diff-%s' % exp_names[args.diff], 'Modell Id') # , markers=markers) #, style='Modell Id')
+    g.fig.subplots_adjust(top=0.91, left=0.04, bottom=0.07, wspace=0.1, hspace=1.5)
+    g.set_axis_labels('Temperaturendring [°C]   ▾ = median, ✕ = gjennomsnitt', 'Nedbørsendring [%]')
+
+    g.add_legend()
+    if args.save:
+        save_plot(g, 'kde_scatterplot_diff')
+
+
+
 def grid_scatterplot_abs(df):
+    sns.set_style('whitegrid')
+    sns.set(style='ticks')
+
     df = df[df.Årstid == args.season]
     if args.period != None:
         df = df[df.Periode == periods_str[period]]
@@ -222,7 +264,7 @@ def grid_scatterplot_abs(df):
     g.map(scatterplot_func, 'TAS celsius', 'PR mm.år', 'Modell Id') # , markers=markers, style='Previous Study')
     g.fig.subplots_adjust(top=0.91, left=0.05, bottom=0.07, wspace=0.1, hspace=1.5)
     g.fig.suptitle('Absolutt nedbør og temperatur for fastlands-norge, %s' % season_map2[args.season], fontsize=16, y=0.98)
-    g.set_axis_labels('Temperatur [°C]', 'Nedbør [mm/år]')
+    g.set_axis_labels('Temperatur [°C]   ▾ = median, ✕ = gjennomsnitt', 'Nedbør [mm/år]')
     g.add_legend()
     if args.save:
         save_plot(g, 'scatterplot_abs')
@@ -354,7 +396,7 @@ def save_plot(g, plotname, varname=''):
     sel = '_allmod' if args.all else ''
     outfile = f'{plotname}_{var}_{gcm}_{rcm}_{per}_{args.season}_{exp}{sel}.png'
     figure = g
-    #full = outroot + '/' + outfile 
+    #full = outroot + '/' + outfile
     #print('save to:', full)
     #print('plots_cmip%s/%s' % (args.cmip, name))
     #g.savefig(full)
@@ -410,7 +452,7 @@ def get_args():
         help='Season to be plotted (ANN=default, MAM, JJA, SON, DJF)'
     )
     parser.add_argument(
-        '-v', '--var', default=None,
+        '-v', '--var', default='TAS',
         help='Variable (TAS, PR)'
     )
     parser.add_argument(
@@ -471,26 +513,11 @@ if __name__ == '__main__':
     args = get_args()
 
     uname = platform.uname()[1]
-    if '-nird' in uname: # NIRD or similar
-        inroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_csv'
-        outroot = '/datalake/NS9001K/dataset/tylo/kin2100/plots_cmip%s/%s' % (args.cmip, args.season)
-        #inroot = 'stats_cmip%s' % args.cmip
-        #outroot = 'plots_cmip%s' % args.cmip
-    elif 'norceresearch.no' in uname:
-        inroot = os.path.expanduser('~') + '/proj/KSS/cordex-norway/stats_v3'
-        outroot = '../plots_cmip%s' % args.cmip
-    elif 'ppi-ext' in uname: # met.no
-        inroot = '/lustre/storeC-ext/users/kin2100/NORCE/NIRD_bkp/cordex-norway/stats_v3'
-        outroot = '../plots%s' % args.cmip
-    else: # home
-        inroot = '.'
-        outroot = '../plots_cmip%s' % args.cmip
+
     if args.indir != None:
         inroot = args.indir
     if args.outdir != None:
         outroot = args.outdir
-
-    selected = '_all' if args.all else ''
 
     period = args.period
     if period is not None:
@@ -509,19 +536,27 @@ if __name__ == '__main__':
 
     print('period', period)
 
+    #selected = '_all' if args.all else ''
     #csvfile = args.csvfile if args.csvfile else 'yseas%s_cmip%s%s.csv' % (args.stat, args.cmip, selected)
-    csvfile = args.csvfile if args.csvfile else '%s/yseas%s_cmip%s%s.csv' % (inroot, args.stat, args.cmip, selected)
+    csvfile = args.csvfile
     print(csvfile)
 
-    # Read dataset
+    # Read datasets
     df = pd.read_csv(csvfile, index_col=0, sep=';')
+    df2 = pd.read_csv(csvfile[:-4] + '_all.csv', index_col=0, sep=';')
+    if args.all:
+        df, df2 = df2, df
 
     if args.diff:
-        if args.var == 'TAS': variable = 'TAS diff-%s' % exp_names[args.diff]
-        if args.var == 'PR': variable = 'PR diff-%s' % exp_names[args.diff]
+        if args.var == 'TAS':
+            variable = 'TAS diff-%s' % exp_names[args.diff]
+        if args.var == 'PR':
+            variable = 'PR diff-%s' % exp_names[args.diff]
     else:
-        if args.var == 'TAS' : variable = 'TAS celsius'
-        if args.var == 'PR': variable = 'PR mm.år'
+        if args.var == 'TAS':
+            variable = 'TAS celsius'
+        if args.var == 'PR':
+            variable = 'PR mm.år'
 
     # Add full model name column: join col 4 and 7
     models = df[df.columns[4:7]].apply(
@@ -534,6 +569,7 @@ if __name__ == '__main__':
 
     outfile = None
     figure = None
+
     if args.plot == 'bar':
         barplot(df)
     elif args.plot == 'cat1':
@@ -544,6 +580,8 @@ if __name__ == '__main__':
         kde1plot(df)
     elif args.plot == 'kde2':
         kde2plot(df)
+    elif args.plot == 'kdediff':
+        kde_scatterplot_diff(df, df2)
     elif args.plot == 'geo':
         geoplot()
     elif args.plot == 'scatter':
@@ -554,6 +592,8 @@ if __name__ == '__main__':
             grid_scatterplot_diff(df)
         else:
             grid_scatterplot_abs(df)
+    else:
+        exit()
 
     mng = plt.get_current_fig_manager()
     mng.resize(*mng.window.maxsize())

@@ -386,8 +386,8 @@ if __name__ == '__main__':
         else:
             #inroot = '/projects/NS9001K/tylo/DATA/cordex-norway/EUR-11-CMIP6'
             #outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip6'
-            inroot='/datalake/NS9001K/dataset/tylo/kin2100/NOR-11-CMIP6'
-            outroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip6'
+            inroot='/datalake/NS9001K/tylo/kin2100/NOR-11-CMIP6'
+            outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip6'
     elif 'norceresearch' in uname.node: # NORCE HPC
         inbase = os.path.expanduser('~') + '/proj/kss/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP6'

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Developed by Tyge Lovset, September 2020
+# Written by Tyge Lovset, 2020-2025
 
 import os
 import sys
@@ -15,6 +15,7 @@ import seaborn as sns
 import pandas as pd
 import math
 
+pr_mm_per_year = 365.25 * 24 * 60 * 60
 
 def load_mask_senorge2018():
     mask = mpimg.imread('norway_mask.png')
@@ -135,7 +136,6 @@ def create_dataframe(stats, dims, stat_op):
         'PR diff-ssp370_2071-2100': [],
     }
 
-    pr_fac = 365.25 * 24 * 60 * 60
 
     for season in dims['seasons']:
         #season_disp = season_ren[season]
@@ -164,13 +164,14 @@ def create_dataframe(stats, dims, stat_op):
                     m['Ensemble'].append(model[2])
                     m['RCM Ver'].append(model[4])
                     m['TAS celsius'].append(tas_mean - 273.15)
-                    m['PR mm.år'].append(pr_mean * pr_fac)
+                    m['PR mm.år'].append(pr_mean * pr_mm_per_year)
 
                     for x1 in range(len(dims['exps'])):
                         name = dims['exps'][x1]
                         if x1 != x:
-                            m['TAS diff-%s' % name].append(tas_mean - stats[s][x1][o][d[3]['tas']][n])
-                            m['PR diff-%s' % name].append(100 * (pr_mean - stats[s][x1][o][d[3]['pr']][n]) / pr_mean)
+                            m['TAS diff-%s' % name].append(stats[s][x1][o][d[3]['tas']][n] - tas_mean)
+                            #m['PR diff-%s' % name].append(100 * (pr_mean - stats[s][x1][o][d[3]['pr']][n]) / pr_mean)
+                            m['PR diff-%s' % name].append(stats[s][x1][o][d[3]['pr']][n]*pr_mm_per_year - pr_mean*pr_mm_per_year)
                         else:
                             m['TAS diff-%s' % name].append(0.0)
                             m['PR diff-%s' % name].append(0.0)
@@ -223,7 +224,7 @@ if __name__ == '__main__':
     if args.indir:
         inbase = inroot = args.indir
     elif '-nird' in uname: # NIRD or similar
-        inbase = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip6'
+        inbase = '/datalake/NS9001K/tylo/kin2100/stats_cmip6'
         inroot = '%s/%s' % (inbase, sub_path)
     elif 'norceresearch.no' in uname:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
@@ -236,7 +237,7 @@ if __name__ == '__main__':
         inroot = inbase
 
     #file = stat_op + '_cmip6'
-    file = '/datalake/NS9001K/dataset/tylo/kin2100/stats_csv/' + stat_op + '_cmip6'
+    file = '/datalake/NS9001K/tylo/kin2100/stats_csv/' + stat_op + '_cmip6'
 
     print('Inroot:', inbase)
     print('Output:', file + '.csv')

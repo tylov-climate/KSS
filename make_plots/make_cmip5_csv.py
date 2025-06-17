@@ -29,16 +29,15 @@ last_study_models = [
     'MPI-M-MPI-ESM-LR_CCLM4-8-17_r1i1p1',
     'MOHC-HadGEM2-ES_RCA4_r1i1p1'
 ]
-'''
-overlaps_models = {
-    #'CNRM-CM5': ['ALADIN_r1i1p1', 'ALARO_r1i1p1', 'RACMO_r1i1p1'],
-    'CNRM-CM5': ['ALADIN63_r1i1p1', 'RACMO_r1i1p1'],
-    'EC-EARTH': ['CCLM_r12i1p1', 'HIRHAM5_r3i1p1', 'RACMO_r12i1p1', 'RCA_r12i1p1', 'REMO_r12i1p1'],
-    'HadGEM2-ES': ['HIRHAM5_r1i1p1', 'RACMO_r1i1p1', 'RCA_r1i1p1', 'REMO_r1i1p1'],
-    'MPI-ESM-LR': ['CCLM_r1i1p1', 'RCA_r1i1p1', 'REMO_r1i1p1', 'REMO_r2i1p1'],
-    'NorESM1-M': ['RCA_r1i1p1', 'REMO_r1i1p1']
+overlaps_models = { # overlaps_models
+    #'CNRM-CERFACS-CNRM-CM5': ['ALADIN_r1i1p1', 'ALARO_r1i1p1', 'RACMO22E_r1i1p1'],
+    'CNRM-CERFACS-CNRM-CM5': ['ALADIN63_r1i1p1', 'RACMO22E_r1i1p1'],
+    'ICHEC-EC-EARTH': ['CCLM-8-17_r12i1p1', 'HIRHAM5_r3i1p1', 'RACMO22E_r12i1p1', 'RCA4_r12i1p1', 'REMO2015_r12i1p1'],
+    'MOHC-HadGEM2-ES': ['HIRHAM5_r1i1p1', 'RACMO22E_r1i1p1', 'RCA4_r1i1p1', 'REMO2015_r1i1p1'],
+    'MPI-M-MPI-ESM-LR': ['CCLM4-8-17_r1i1p1', 'RCA4_r1i1p1', 'REMO2009_r1i1p1', 'REMO2009_r2i1p1'],
+    'NCC-NorESM1-M': ['RCA4_r1i1p1', 'REMO2015_r1i1p1']
 }
-'''
+
 selected_models = {
     'CNRM-CERFACS-CNRM-CM5': ['ALADIN63_r1i1p1'],
     'ICHEC-EC-EARTH': ['CCLM4-8-17_r12i1p1', 'HIRHAM5_r3i1p1', 'RCA4_r12i1p1'],
@@ -46,6 +45,9 @@ selected_models = {
     'MPI-M-MPI-ESM-LR': ['CCLM4-8-17_r1i1p1', 'REMO2009_r2i1p1'],
     'NCC-NorESM1-M': ['RCA4_r1i1p1', 'REMO2015_r1i1p1']
 }
+
+
+pr_mm_per_year = 365.25 * 24 * 60 * 60
 
 
 def load_mask_senorge2018():
@@ -73,6 +75,9 @@ def average_data(inroot, output):
             f = os.path.basename(path)
             var_id, domain_id, institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version, stat_op, create_ver_id, period = f[:-3].split('_')
             season = 'all'
+
+            if experiment_id not in ('historical', 'rcp45'):
+                break
 
             model_name = '_'.join([institute_id, model_id, ensemble_id, source_id, rcm_version])
             exp_name = experiment_id + '_' + period
@@ -137,8 +142,6 @@ def average_data(inroot, output):
                             if var_id == 'tas' and value < 200.0: # Fix some data with C degrees instead of K.
                                 value += 273.15
                             stats[d[0][season]][d[1][exp_name]][d[2][stat_op]][d[3][var_id]][d[4][model_name]] = value
-                            if var_id == 'pr':
-                                value *= 365.25 * 24 * 60 * 60
                             #print(n, period, season, exp_name, stat_op, var_id, model_name, ':', value) # , value_unmasked)
                             n += 1
     return stats, dims
@@ -153,19 +156,21 @@ def create_dataframe(stats, dims, stat_op, use_all):
         'TAS celsius': [], 'PR mm.år': [],
         'TAS diff-historical_1971-2000': [],
         'TAS diff-historical_1991-2020': [],
+        'TAS diff-rcp26_2041-2070': [],
         'TAS diff-rcp45_2041-2070': [],
         'TAS diff-rcp85_2041-2070': [],
+        'TAS diff-rcp26_2071-2100': [],
         'TAS diff-rcp45_2071-2100': [],
         'TAS diff-rcp85_2071-2100': [],
         'PR diff-historical_1971-2000': [],
         'PR diff-historical_1991-2020': [],
+        'PR diff-rcp26_2041-2070': [],
         'PR diff-rcp45_2041-2070': [],
         'PR diff-rcp85_2041-2070': [],
+        'PR diff-rcp26_2071-2100': [],
         'PR diff-rcp45_2071-2100': [],
         'PR diff-rcp85_2071-2100': [],
     }
-
-    pr_fac = 365.25 * 24 * 60 * 60
 
     for season in dims['seasons']:
         #season_disp = season_ren[season]
@@ -177,14 +182,13 @@ def create_dataframe(stats, dims, stat_op, use_all):
 
                 if not use_all:
                     match = False
-                    for key, val in selected_models.items():
+                    for key, val in model_collection.items():
                         if match: break
                         if model[1].endswith(key):           # 'Model' in csv
                             for mod in val:
                                 mid, ens = mod.split('_')
                                 if model[3].startswith(mid) and model[2] == ens: # 'Model Id' and 'Ensemble' in csv
                                     match = True
-                                    #print('MATCH: ', key, ':', mid, ens, ':', model[3], model[2])
                                     if ens != model[2]:
                                         print('Wrong ensemble match:', model[1], model[3], model[2], '!=', ens)
                                     break
@@ -210,16 +214,20 @@ def create_dataframe(stats, dims, stat_op, use_all):
                     m['Ensemble'].append(model[2])
                     m['RCM Ver'].append(model[4])
                     m['TAS celsius'].append(tas_mean - 273.15)
-                    m['PR mm.år'].append(pr_mean * pr_fac)
+                    m['PR mm.år'].append(pr_mean * pr_mm_per_year)
 
                     for x1 in range(len(dims['exps'])):
                         name = dims['exps'][x1]
                         if x1 != x:
-                            m['TAS diff-%s' % name].append(tas_mean - stats[s][x1][o][d[3]['tas']][n])
-                            m['PR diff-%s' % name].append(100 * (pr_mean - stats[s][x1][o][d[3]['pr']][n]) / pr_mean)
+                            m['TAS diff-%s' % name].append(stats[s][x1][o][d[3]['tas']][n] - tas_mean)
+                            #m['PR diff-%s' % name].append(pr_mean*pr_mm_per_year - stats[s][x1][o][d[3]['pr']][n]*pr_mm_per_year)
+                            m['PR diff-%s' % name].append(100 * (stats[s][x1][o][d[3]['pr']][n] - pr_mean) / pr_mean)
                         else:
                             m['TAS diff-%s' % name].append(0.0)
                             m['PR diff-%s' % name].append(0.0)
+
+    # remove empty diff entries
+    m = {k: v for k, v in m.items() if len(v) != 0}
 
     df = pd.DataFrame(m)
     # Merge models to match last_study_models[] signature.
@@ -243,8 +251,8 @@ def parse_args():
     print('')
 
     parser.add_argument(
-        '-s', '--stat', default='mean',
-        help='Statistics (mean=default, min, max)'
+        '-s', '--stat', required=True,
+        help='Statistics (mean, min, max)'
     )
     parser.add_argument(
         '--interval', default='yseas',
@@ -275,15 +283,19 @@ if __name__ == '__main__':
     uname = platform.uname()[1]
 
     args = parse_args()
+    if args.all:
+        model_collection = overlaps_models
+        sel = '_all'
+    else:
+        model_collection = selected_models
+        sel = ''
 
     stat_op = '%s%s' % (args.interval, args.stat) # e.g. yseasmean
-    sel = '_all' if args.all else ''
-    print('sel', sel)
 
     if args.indir:
         inroot = args.indir
     elif '-nird' in uname: # NIRD or similar
-        inroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip5%s/%s' % (sel, stat_op)
+        inroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip5%s_new/%s' % ('', stat_op) #(sel, stat_op)
     elif 'norceresearch.no' in uname:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
         inroot = inbase + '/stats_v3/%s' % stat_op

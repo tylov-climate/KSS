@@ -61,19 +61,6 @@ def find_period(d1, d2, periods):
     return 0, -1
 
 
-def create_diff_file(var, infile, reffile, outfile):
-    outdir = os.path.dirname(outfile)
-    os.makedirs(outdir, exist_ok=True)
-    shutil.copyfile(infile, outfile)
-    with nc4.Dataset(reffile) as nc_ref:
-        with nc4.Dataset(outfile, 'r+') as nc:
-            if var == 'tas':
-                data = nc.variables[var][:] - nc_ref.variables[var][:]
-            if var == 'pr':
-                data = 100 * (nc.variables[var][:] - nc_ref.variables[var][:]) / nc_ref.variables[var][:]
-            nc[var][:] = data
-
-
 def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
     # loop files
     op = interval + stat_op
@@ -90,6 +77,7 @@ def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
 
         if base.startswith('pr_'):
             cmd1 = cdo + ' -L -O ens%s %s/*.nc %s' % (ens_op, dd, 'tmp1.nc')
+            #cmd2 = cdo + ' -L -O setattribute,pr@units="mm year-1" %s %s' % ('tmp1.nc', outfile)
             cmd2 = cdo + ' -L -O setattribute,pr@units="mm year-1" %s %s' % ('tmp1.nc', 'tmp2.nc')
             cmd3 = 'ncap2 -O -s "pr=31557600*pr" %s %s' % ('tmp2.nc', outfile)
             if not args.dry:
@@ -147,6 +135,20 @@ def create_ensdiff_files(outroot, interval, stat_op, ens_op):
                 create_diff_file(var, f, ref, outfile)
 
 
+def create_diff_file(var, infile, reffile, outfile):
+    outdir = os.path.dirname(outfile)
+    os.makedirs(outdir, exist_ok=True)
+    shutil.copyfile(infile, outfile)
+    with nc4.Dataset(reffile) as nc_ref:
+        with nc4.Dataset(outfile, 'r+') as nc:
+            if var == 'tas':
+                data = nc.variables[var][:] - nc_ref.variables[var][:] # => Celsius diff
+            if var == 'pr':
+                #data = 100 * (nc.variables[var][:] - nc_ref.variables[var][:]) / nc_ref.variables[var][:]
+                data = nc.variables[var][:] - nc_ref.variables[var][:] # => mm/year diff
+            nc[var][:] = data
+
+
 # hist => 2005
 # rcp4.5 start 2006
 
@@ -159,7 +161,11 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
     if not os.path.isdir(outroot_op):
         os.makedirs(outroot_op)
 
-    print('make_stats:', interval, stat_op, periods, institute)
+    #print('make_stats:', interval, stat_op, periods, institute)
+
+    for k, v in overlaps_models.items():
+        print(k, v)
+    print()
 
     for per in [periods[int(i)] for i in args.periods.split(',')]:
         filemap = {}
@@ -167,7 +173,7 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
 
         tmpdir = os.path.join(outroot, 'temp_%s_%s_%s' % (institute, op, period_id))
         pattern = os.path.join(inroot, institute + '/*/*/*/*/*/day/*/*')
-        print(pattern)
+
         for dd in glob.glob(pattern):
             subpath = dd.replace(inroot, '')
             institute_id, model_id, experiment_id, ensemble_id, source_id, rcm_version_id, freq_id, var_id, create_ver_id = subpath.split('/')
@@ -176,9 +182,11 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
                 continue
 
             if not args.all:
+                rcm_id = '%s_%s' % (source_id, ensemble_id)
+                #if var_id == "tas" and experiment_id == "rcp45":
+                #print(subpath, rcm_id)
                 try:
-                    rcms = selected_models[model_id]
-                    rcm_id = '%s_%s' % (source_id, ensemble_id)
+                    rcms = overlaps_models[model_id]
                     if not rcm_id in rcms:
                         continue
                 except:
@@ -193,12 +201,15 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
                 elif experiment_id != 'historical':
                     continue
 
+            if args.scenarios and expid not in args.scenarios:
+                continue
+
             experiment = '%s_%s_%s_%s_%s_%s_%s_%s_%s_%s' % (var_id, 'EUR-11', institute_id, model_id, expid, ensemble_id, source_id, rcm_version_id, op, create_ver_id)
             outfile = os.path.join(outroot_op, '%s_%s_%s_%s' % (var_id, op, period_id, expid[:5]), experiment + '_%s.nc' % period_id)
             input_files = []
 
             if not args.dry and os.path.isfile(outfile):
-                print('    ...exists')
+                print(f'exist: %s' % (os.path.basename(outfile)))
                 continue
 
             for file in glob.glob(os.path.join(dd, '*.nc')):
@@ -233,12 +244,13 @@ def make_stats(inroot, outroot, interval, stat_op, periods, institute):
             odir = os.path.dirname(outfile)
             oname = os.path.basename(outfile)
             print("CDO", op, period_id)
-            print('  =>', oname)
+            print('  => %s/' % odir)
+            print('     ', oname)
             # Temp outfile in root output, to be moved
             tmpfile = os.path.join(outroot, oname)
             infiles_str = ''
             for f in sorted(input_files):
-                print('    ', os.path.basename(f))
+                print('  <-', os.path.basename(f))
                 infiles_str += ' ' + f
             # Concatenate all files
             cmd = cdo + " -L %s -cat '%s' %s" % (op, infiles_str, tmpfile)
@@ -283,7 +295,7 @@ def parse_args():
     )
     parser.add_argument(
         '-e', '--ensemble', action='store_true',
-        help='Create ensemble statistic files over all or selected models'
+        help='Only create ensemble statistic files over all or selected models'
     )
     parser.add_argument(
         '--all', action='store_true',
@@ -302,6 +314,10 @@ def parse_args():
         help='stat operation: (' + ', '.join([k for k in stat_ops.keys()]) + ')'
     )
     parser.add_argument(
+        '-x', '--scenarios', default=None,
+        help='Experiment scenarios: historical, rcp26, rcp45, rcp85'
+    )
+    parser.add_argument(
         '--interval', default='yseas',
         help='statstics interval: (yseas[=default], ymon)'
     )
@@ -314,12 +330,14 @@ def parse_args():
         help='Output file directory'
     )
     parser.add_argument(
-        '-t', '--institute', default=None,
+        '-t', '--institute', default='*',
         help='Input institute name: default "*"'
     )
     return parser.parse_args()
 
 # Create mean, min, max or std data over all the periods, seasons (full = all seasons)
+# RCP 4.5, 17 combinasjon, 2.6, 4.5, 8.5, 1991-2070, 2071-2100 årsbasis.
+
 
 if __name__ == '__main__':
     #periods = ((1951, 2000), (2031, 2060), (2071, 2100)) # OLD MIPS5
@@ -327,15 +345,52 @@ if __name__ == '__main__':
     #periods = ((1985, 2014), (1991, 2020),              (2041, 2070), (2071, 2100)) # CMIP6
     periods = ((1971, 2020), (1971, 2000), (1991, 2020), (2041, 2070), (2071, 2100)) # 5+6
     stat_ops = {'mean': 1, 'min': 2, 'max': 3, 'std': 4}
-    selected_models = {
+
+    selected_models = { # 10 models
         'CNRM-CERFACS-CNRM-CM5': ['ALADIN63_r1i1p1'],
         'ICHEC-EC-EARTH': ['CCLM4-8-17_r12i1p1', 'HIRHAM5_r3i1p1', 'RCA4_r12i1p1'],
         'MOHC-HadGEM2-ES': ['RCA4_r1i1p1', 'REMO2015_r1i1p1'],
         'MPI-M-MPI-ESM-LR': ['CCLM4-8-17_r1i1p1', 'REMO2009_r2i1p1'],
         'NCC-NorESM1-M': ['RCA4_r1i1p1', 'REMO2015_r1i1p1']
     }
-    cdo = 'cdo'
 
+    overlaps_models = { # 17 overlapping models
+        'CNRM-CERFACS-CNRM-CM5': ['ALADIN63_r1i1p1', 'RACMO22E_r1i1p1'],
+        'ICHEC-EC-EARTH': ['CCLM-8-17_r12i1p1', 'HIRHAM5_r3i1p1', 'RACMO22E_r12i1p1', 'RCA4_r12i1p1', 'REMO2015_r12i1p1'],
+        'MOHC-HadGEM2-ES': ['HIRHAM5_r1i1p1', 'RACMO22E_r1i1p1', 'RCA4_r1i1p1', 'REMO2015_r1i1p1'],
+        'MPI-M-MPI-ESM-LR': ['CCLM4-8-17_r1i1p1', 'RCA4_r1i1p1', 'REMO2009_r1i1p1', 'REMO2009_r2i1p1'],
+        'NCC-NorESM1-M': ['RCA4_r1i1p1', 'REMO2015_r1i1p1']
+    }
+
+    '''
+    CNRM:
+    CLMcom/CNRM-CERFACS-CNRM-CM5/rcp45/r1i1p1/CCLM4-8-17
+    CNRM/CNRM-CERFACS-CNRM-CM5/rcp45/r1i1p1/ALADIN53
+    CNRM/CNRM-CERFACS-CNRM-CM5/rcp45/r1i1p1/ALADIN63
+    KNMI/CNRM-CERFACS-CNRM-CM5/rcp45/r1i1p1/RACMO22E
+    RMIB-UGent/CNRM-CERFACS-CNRM-CM5/rcp45/r1i1p1/ALARO-0
+    SMHI/CNRM-CERFACS-CNRM-CM5/rcp45/r1i1p1/RCA4
+    ICEC:
+    CLMcom/ICHEC-EC-EARTH/rcp45/r12i1p1/CCLM4-8-17
+    DMI/ICHEC-EC-EARTH/rcp45/r3i1p1/HIRHAM5
+    GERICS/ICHEC-EC-EARTH/rcp45/r12i1p1/REMO2015
+    KNMI/ICHEC-EC-EARTH/rcp45/r12i1p1/RACMO22E
+    KNMI/ICHEC-EC-EARTH/rcp45/r1i1p1/RACMO22E
+    SMHI/ICHEC-EC-EARTH/rcp45/r12i1p1/RCA4
+    MOHC:
+    CLMcom/MOHC-HadGEM2-ES/rcp45/r1i1p1/CCLM4-8-17
+    DMI/MOHC-HadGEM2-ES/rcp45/r1i1p1/HIRHAM5
+    GERICS/MOHC-HadGEM2-ES/rcp45/r1i1p1/REMO2015
+    KNMI/MOHC-HadGEM2-ES/rcp45/r1i1p1/RACMO22E
+    SMHI/MOHC-HadGEM2-ES/rcp45/r1i1p1/RCA4
+    MPI:
+    CLMcom/MPI-M-MPI-ESM-LR/rcp45/r1i1p1/CCLM4-8-17
+    MPI-CSC/MPI-M-MPI-ESM-LR/rcp45/r1i1p1/REMO2009
+    MPI-CSC/MPI-M-MPI-ESM-LR/rcp45/r2i1p1/REMO2009
+    SMHI/MPI-M-MPI-ESM-LR/rcp45/r1i1p1/RCA4
+    '''
+
+    cdo = 'cdo'
     uname = platform.uname()
     #print(uname)
 
@@ -352,7 +407,7 @@ if __name__ == '__main__':
         inroot = inbase + '/EUR-11-CMIP5'
         #outroot = '/nird/home/tylo/proj/KSS/stats_cmip5' + ('_all' if args.all else '')
         #outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip5' + ('_all' if args.all else '')
-        outroot = '/datalake/NS9001K/dataset/tylo/kin2100/stats_cmip5' + ('_all' if args.all else '')
+        outroot = '/datalake/NS9001K/tylo/kin2100/stats_cmip5_new' + ('_all' if args.all else '')
     elif 'norceresearch.no' in uname.node:
         inbase = os.path.expanduser('~') + '/proj/KSS/cordex-norway'
         inroot = inbase + '/EUR-11-CMIP5'
@@ -360,15 +415,19 @@ if __name__ == '__main__':
     elif 'ppi-ext' in uname.node: # met.no
         inbase = '/lustre/storeC-ext/users/kin2100/NORCE/cordex-norway'
         inroot = inbase + '/EUR-11'
-        outroot = inbase + '/stats_cmip5' + ('_all' if args.all else '')
+        #outroot = inbase + '/stats_cmip5' + ('_all' if args.all else '')
+        outroot = inbase + '/stats_cmip5_new' + ('_all' if args.all else '')
     else: # home
         inroot = 'C:/Dev/DATA/EUR-11-CMIP5'
         outroot = 'C:/Dev/DATA/cordex-norway/stats_cmip5' + ('_all' if args.all else '')
 
+    if args.outdir:
+        outroot = args.outdir
+
     if args.ensemble:
         #print('Reference period:', periods[int(args.ref_period)])
         statsroot = outroot
-        make_ensemble_stats(outroot, statsroot, 'ymon', stat_op, stat_op, periods)
+        make_ensemble_stats(outroot, statsroot, args.interval, stat_op, stat_op, periods)
     else:
         if institute is None:
             print("missing argument: -t institute")
