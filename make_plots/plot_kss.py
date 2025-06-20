@@ -437,7 +437,7 @@ def get_args():
     )
     parser.add_argument(
         '-P', '--plot', required=False, default='bar',
-        help='Plot type (bar=default, scatter, kde, cat1, cat2, geo)'
+        help='Plot type (bar=default, scatter, kdediff, kde1, kde2, cat1, cat2, geo)'
     )
     parser.add_argument(
         '-p', '--period', default=None,

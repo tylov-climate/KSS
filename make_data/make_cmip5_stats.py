@@ -50,6 +50,8 @@ MPI-CSC/MPI-M-MPI-ESM-LR/rcp26/r1i1p1/REMO2009/v1/day/pr/v20160525
 
 '''
 
+# Disabled code:
+'''
 def find_period(d1, d2, periods):
     i = 0
     for p in periods:
@@ -59,7 +61,6 @@ def find_period(d1, d2, periods):
             return i, -2
         i += 1
     return 0, -1
-
 
 def make_ensemble_stats(inroot, outroot, interval, stat_op, ens_op, periods):
     # loop files
@@ -147,6 +148,7 @@ def create_diff_file(var, infile, reffile, outfile):
                 #data = 100 * (nc.variables[var][:] - nc_ref.variables[var][:]) / nc_ref.variables[var][:]
                 data = nc.variables[var][:] - nc_ref.variables[var][:] # => mm/year diff
             nc[var][:] = data
+'''
 
 
 # hist => 2005
@@ -370,7 +372,7 @@ if __name__ == '__main__':
     KNMI/CNRM-CERFACS-CNRM-CM5/rcp45/r1i1p1/RACMO22E
     RMIB-UGent/CNRM-CERFACS-CNRM-CM5/rcp45/r1i1p1/ALARO-0
     SMHI/CNRM-CERFACS-CNRM-CM5/rcp45/r1i1p1/RCA4
-    ICEC:
+    ICHEC:
     CLMcom/ICHEC-EC-EARTH/rcp45/r12i1p1/CCLM4-8-17
     DMI/ICHEC-EC-EARTH/rcp45/r3i1p1/HIRHAM5
     GERICS/ICHEC-EC-EARTH/rcp45/r12i1p1/REMO2015
@@ -425,9 +427,10 @@ if __name__ == '__main__':
         outroot = args.outdir
 
     if args.ensemble:
+        print('Ensemble functionality not active')
         #print('Reference period:', periods[int(args.ref_period)])
-        statsroot = outroot
-        make_ensemble_stats(outroot, statsroot, args.interval, stat_op, stat_op, periods)
+        #statsroot = outroot
+        #make_ensemble_stats(outroot, statsroot, args.interval, stat_op, stat_op, periods)
     else:
         if institute is None:
             print("missing argument: -t institute")
